@@ -11,6 +11,10 @@ set (COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../common/")
 set (WGLIBANDROID "${CMAKE_CURRENT_SOURCE_DIR}/WhirlyGlobeLib/")
 set (JNIDIR "${CMAKE_CURRENT_SOURCE_DIR}/jni/")
 
+# Google Play requires 16 KB-aligned LOAD segments for 64-bit native code (Android 15+ devices
+# with 16 KB memory pages).
+set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-z,max-page-size=16384")
+
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
