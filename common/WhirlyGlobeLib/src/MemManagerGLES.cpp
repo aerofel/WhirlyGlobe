@@ -187,10 +187,10 @@ void OpenGLMemManager::removeTexID(GLuint texID)
 {
     if (texID != 0)
     {
-        // Clear out the texture data first
-        glBindTexture(GL_TEXTURE_2D, texID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-
+        // A pooled ID keeps its storage: every reuse re-specifies it with glTexImage2D /
+        // glCompressedTexImage2D (TextureGLES, DynamicTextureAtlasGLES). Clearing it here with a
+        // zero-size upload made the driver free GPU memory synchronously on the render thread for
+        // every removed tile, which stalled frames while the camera swept the globe.
         std::lock_guard<std::mutex> guardLock(idLock);
 
         // Add this one back to the cache set if we should keep it.

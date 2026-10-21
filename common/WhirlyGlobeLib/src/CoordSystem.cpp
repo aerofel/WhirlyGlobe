@@ -18,6 +18,8 @@
 
 #import "Platform.h"
 #import "CoordSystem.h"
+#import "GlobeMath.h"
+#import <cmath>
 
 using namespace Eigen;
 
@@ -29,6 +31,13 @@ Point3f CoordSystemConvert(const CoordSystem *inSystem,const CoordSystem *outSys
     // Easy if the coordinate systems are the same
     if (inSystem->isSameAs(outSystem))
         return inCoord;
+
+    // To plain lon/lat: see CoordSystemConvert3d
+    if (dynamic_cast<const GeoCoordSystem *>(outSystem))
+    {
+        const Point2d geo = inSystem->localToGeographicD(inCoord.cast<double>());
+        return {(float)std::remainder(geo.x(), 2*M_PI), (float)geo.y(), inCoord.z()};
+    }
     
     // We'll go through geocentric which isn't horrible, but obviously we're assuming the same datum
     return outSystem->geocentricToLocal(inSystem->localToGeocentric(inCoord));
@@ -39,6 +48,15 @@ Point3d CoordSystemConvert3d(const CoordSystem *inSystem,const CoordSystem *outS
     // Easy if the coordinate systems are the same
     if (inSystem->isSameAs(outSystem))
         return inCoord;
+
+    // To plain lon/lat, skip the geocentric round trip: localToGeocentric starts from
+    // localToGeographicD and GeoCoordSystem::geocentricToLocal (an iterative proj4 call) only
+    // recovers the same lon/lat/height. This is the quad sampler's hot path on every view change.
+    if (dynamic_cast<const GeoCoordSystem *>(outSystem))
+    {
+        const Point2d geo = inSystem->localToGeographicD(inCoord);
+        return {std::remainder(geo.x(), 2*M_PI), geo.y(), inCoord.z()};
+    }
     
     // We'll go through geocentric which isn't horrible, but obviously we're assuming the same datum
     return outSystem->geocentricToLocal(inSystem->localToGeocentric(inCoord));
