@@ -2,6 +2,30 @@
 
 Newest first. Upstream history before the fork lives in git (`v3.5` tag).
 
+## 2026-10-25 (Offto tile plan, Phase 3)
+
+### Added
+- Tile crossfade: `MaplyQuadImageFrameLoader.textureFadeDuration` (0 = off). A tile fades in
+  when its own texture replaces the stretched ancestor it showed (not on reloads, not at the
+  min level). `BasicDrawableInstance::setFade`; `FadeChangeRequest` now reaches instances.
+- Mipmaps: `MaplyQuadImageLoaderBase.generateMipmaps` (default NO). RGBA8 and 565 tiles get a
+  CPU-built mip chain (`DownsampleRGBA8`, box filter). The default tile shaders sample with
+  `mip_filter::linear` (no change for textures without mips).
+- `MaplyQuadImageLoaderBase.prepareTexturesOnWorkers` (default NO): texture conversion and mip
+  building run on the parse workers (`QuadImageFrameLoader::prepareLoadReturn`,
+  `Texture::prepareData`); the sampling thread only uploads.
+- Tile look-ahead: `WhirlyGlobeViewController.tileLookAheadTime` (0 = off). The sampler also
+  loads, at half importance, what will be visible where the camera is heading (`GlobeMotion`).
+- Stats: requests, cancels, merge outcomes, wait/parse time, latency histogram.
+- Host tests: `GlobeMotionTests`, `MipmapRGBA8Tests`, crossfade cases in `QIFDrawStateCacheTests`.
+
+### Changed
+- Tile selection computes each node's importance once per evaluation, and caches each tile's
+  `DisplaySolid` (the sampling thread spent 28 % rebuilding them).
+- Metal: argument encoders are shared per (shader function, buffer index) instead of made per
+  drawable.
+- GLES: mipmapped textures use `GL_LINEAR_MIPMAP_LINEAR` (was `GL_NEAREST_MIPMAP_LINEAR`).
+
 ## 2026-10-25 (Offto tile plan, Phase 2)
 
 ### Added
