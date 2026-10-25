@@ -18,6 +18,27 @@
 
 #import "QuadImageFrameLoader.h"
 #import "WhirlyKitLog.h"
+#import <chrono>
+
+namespace
+{
+// offto: adds the duration of a scope to a pipeline counter, under the stats lock
+struct PipelineTimer
+{
+    std::mutex &lock;
+    int64_t &count;
+    double &seconds;
+    const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+
+    ~PipelineTimer()
+    {
+        const double dt = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+        std::lock_guard<std::mutex> guardLock(lock);
+        count++;
+        seconds += dt;
+    }
+};
+}
 
 namespace WhirlyKit
 {
@@ -578,7 +599,8 @@ void QIFRenderState::updateScene(Scene *,
                                  __unused bool flipY,
                                  const RGBAColor &color,
                                  bool masterEnable,
-                                 ChangeSet &changes)
+                                 ChangeSet &changes,
+                                 UpdateInfo *info)
 {
     if (tiles.empty())
         return;
@@ -646,6 +668,14 @@ void QIFRenderState::updateScene(Scene *,
             const auto tileID = tileIt.first;
             const auto tile = tileIt.second;
             bool enable = bigEnable && tile->enable;
+            if (enable && info && focusID == 0 && numFrames > 0) {
+                info->enabledTiles++;
+                const auto &frame = tile->frames[activeFrames[0]];
+                if (!frame.texIDs.empty() && frame.texNode.level < tileID.level) {
+                    info->fallbackTiles++;
+                    info->maxFallbackRelLevel = std::max(info->maxFallbackRelLevel, tileID.level - frame.texNode.level);
+                }
+            }
             if (enable) {
                 // Assign as many active textures as we've got
                 for (unsigned int ii=0;ii<numFrames;ii++) {
@@ -999,6 +1029,7 @@ void QuadImageFrameLoader::removeTile(PlatformThreadInfo *threadInfo,const QuadT
     
 void QuadImageFrameLoader::mergeLoadedTile(PlatformThreadInfo *threadInfo,QuadLoaderReturn *loadReturn,ChangeSet &changes)
 {
+    PipelineTimer timer{statsLock, stats.pipeline.merges, stats.pipeline.mergeSeconds};
     changesSinceLastFlush = true;
 
     if (debugMode)
@@ -1199,6 +1230,7 @@ void QuadImageFrameLoader::updateRenderState(ChangeSet &changes)
 // All the texture are assigned there
 void QuadImageFrameLoader::buildRenderState(ChangeSet &changes)
 {
+    PipelineTimer timer{statsLock, stats.pipeline.renderStateBuilds, stats.pipeline.renderStateBuildSeconds};
     const int numFrames = getNumFrames();
     QIFRenderState newRenderState(numFocus,numFrames);
     newRenderState.texSize = texSize;
@@ -1493,7 +1525,20 @@ void QuadImageFrameLoader::updateForFrame(RendererFrameInfo *frameInfo)
     ChangeSet changes;
 
     TimeInterval now = control->getScene()->getCurrentTime();
-    renderState.updateScene(frameInfo->scene, curFrames, now, flipY, color, masterEnable, changes);
+    QIFRenderState::UpdateInfo info;
+    const auto start = std::chrono::steady_clock::now();
+    renderState.updateScene(frameInfo->scene, curFrames, now, flipY, color, masterEnable, changes, &info);
+    const double dt = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    {
+        std::lock_guard<std::mutex> guardLock(statsLock);
+        auto &pipe = stats.pipeline;
+        pipe.sceneUpdates++;
+        pipe.sceneUpdateSeconds += dt;
+        pipe.sceneUpdateChanges += (int64_t)changes.size();
+        pipe.enabledTiles = info.enabledTiles;
+        pipe.fallbackTiles = info.fallbackTiles;
+        pipe.maxFallbackRelLevel = info.maxFallbackRelLevel;
+    }
 
     frameInfo->scene->addChangeRequests(changes);
 }
@@ -1525,6 +1570,7 @@ void QuadImageFrameLoader::makeStats()
     }
     
     std::lock_guard<std::mutex> guardLock(statsLock);
+    newStats.pipeline = stats.pipeline;     // cumulative, kept across snapshots
     stats = newStats;
 }
     

@@ -68,6 +68,23 @@
 /// Per frame stats for current loading state
 @property (nonatomic,nonnull) NSArray<MaplyQuadImageFrameStats *> *frames;
 
+/// offto: pipeline counters, cumulative since the loader started (compare two snapshots).
+/// Sampling-layer thread: tile merges and the seconds spent in them.
+@property (nonatomic) int64_t merges;
+@property (nonatomic) double mergeSeconds;
+/// Sampling-layer thread: render states built for the render thread, and their seconds.
+@property (nonatomic) int64_t renderStateBuilds;
+@property (nonatomic) double renderStateBuildSeconds;
+/// Render thread: scene updates from those states, their seconds and the change requests emitted.
+@property (nonatomic) int64_t sceneUpdates;
+@property (nonatomic) double sceneUpdateSeconds;
+@property (nonatomic) int64_t sceneUpdateChanges;
+/// Last scene update: tiles drawn, how many used an ancestor's texture (still loading), and the
+/// largest level gap among those (1 = parent, 2x; 4 = 16x).
+@property (nonatomic) int enabledTiles;
+@property (nonatomic) int fallbackTiles;
+@property (nonatomic) int maxFallbackRelLevel;
+
 @end
 
 /// How we load frames in the QuadImageFrameLoader

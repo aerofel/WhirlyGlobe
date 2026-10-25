@@ -271,7 +271,19 @@ NSString * const MaplyQuadImageLoaderFetcherName = @"QuadImageLoader";
         [frameStats addObject:retFrameStat];
     }
     retStats.frames = frameStats;
-    
+
+    const auto &pipe = stats.pipeline;
+    retStats.merges = pipe.merges;
+    retStats.mergeSeconds = pipe.mergeSeconds;
+    retStats.renderStateBuilds = pipe.renderStateBuilds;
+    retStats.renderStateBuildSeconds = pipe.renderStateBuildSeconds;
+    retStats.sceneUpdates = pipe.sceneUpdates;
+    retStats.sceneUpdateSeconds = pipe.sceneUpdateSeconds;
+    retStats.sceneUpdateChanges = pipe.sceneUpdateChanges;
+    retStats.enabledTiles = pipe.enabledTiles;
+    retStats.fallbackTiles = pipe.fallbackTiles;
+    retStats.maxFallbackRelLevel = pipe.maxFallbackRelLevel;
+
     return retStats;
 }
 

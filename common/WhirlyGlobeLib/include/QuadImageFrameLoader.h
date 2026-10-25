@@ -307,6 +307,17 @@ public:
     std::vector<bool> topTilesLoaded;
     
     bool hasUpdate(const std::vector<double> &curFrames,bool masterUpdate) const;
+
+    /// What one updateScene() call found (offto: loader stats)
+    struct UpdateInfo
+    {
+        // Tiles turned on (focus 0)
+        int enabledTiles = 0;
+        // Of those, tiles drawn with an ancestor's texture because their own is not in yet
+        int fallbackTiles = 0;
+        // Largest level difference among those fallbacks (1 = parent, 4 = 16x stretch)
+        int maxFallbackRelLevel = 0;
+    };
     
     std::vector<double> lastCurFrames;
     TimeInterval lastRenderTime;
@@ -320,7 +331,8 @@ public:
                      bool flipY,
                      const RGBAColor &color,
                      bool masterEnable,
-                     ChangeSet &changes);
+                     ChangeSet &changes,
+                     UpdateInfo *info = nullptr);
 };
     
 /** Quad Image Frame Loader
@@ -505,6 +517,26 @@ public:
         
         // Per frame stats
         std::vector<FrameStats> frameStats;
+
+        /// offto: pipeline counters, cumulative since the loader started (read the deltas).
+        struct Pipeline
+        {
+            // Layer thread: mergeLoadedTile() calls and the time spent in them
+            int64_t merges = 0;
+            double mergeSeconds = 0.0;
+            // Layer thread: render states built for the render thread
+            int64_t renderStateBuilds = 0;
+            double renderStateBuildSeconds = 0.0;
+            // Render thread: QIFRenderState::updateScene() runs, their time and the change
+            // requests they emitted
+            int64_t sceneUpdates = 0;
+            double sceneUpdateSeconds = 0.0;
+            int64_t sceneUpdateChanges = 0;
+            // Render thread, last scene update only
+            int enabledTiles = 0;
+            int fallbackTiles = 0;
+            int maxFallbackRelLevel = 0;
+        } pipeline;
     };
 
     /// Return the stats (thread safe)
