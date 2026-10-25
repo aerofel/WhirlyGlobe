@@ -19,6 +19,7 @@
 #import "QuadSamplingController.h"
 #import "QuadLoaderReturn.h"
 #import "ComponentManager.h"
+#import "QIFDrawStateCache.h"
 
 namespace WhirlyKit
 {
@@ -332,7 +333,8 @@ public:
                      const RGBAColor &color,
                      bool masterEnable,
                      ChangeSet &changes,
-                     UpdateInfo *info = nullptr);
+                     UpdateInfo *info = nullptr,
+                     QIFDrawStateCache *drawCache = nullptr);
 };
     
 /** Quad Image Frame Loader
@@ -650,6 +652,9 @@ protected:
     
     // Tile rendering info supplied from the layer thread
     QIFRenderState renderState;
+
+    // offto: what each tile drawable last received from updateScene (render thread only)
+    QIFDrawStateCache drawStateCache;
     
     bool changesSinceLastFlush;
     

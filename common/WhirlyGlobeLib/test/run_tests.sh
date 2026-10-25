@@ -10,3 +10,5 @@ c++ $flags "$here/QuadTreeNewTests.cpp" "$lib/src/QuadTreeNew.cpp" "$lib/src/Whi
 "$out"
 c++ $flags "$here/VertexAttributeTests.cpp" "$lib/src/VertexAttribute.cpp" -o "$out-va"
 "$out-va"
+c++ $flags "$here/QIFDrawStateCacheTests.cpp" "$lib/src/QIFDrawStateCache.cpp" -o "$out-ds"
+"$out-ds"

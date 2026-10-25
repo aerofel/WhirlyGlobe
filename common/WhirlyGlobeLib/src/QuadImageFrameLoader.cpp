@@ -19,9 +19,36 @@
 #import "QuadImageFrameLoader.h"
 #import "WhirlyKitLog.h"
 #import <chrono>
+#import <cstring>
 
 namespace
 {
+// offto: turns QIFDrawStateCache decisions into scene change requests
+struct ChangeSetEmitter : WhirlyKit::QIFDrawStateCache::Emitter
+{
+    explicit ChangeSetEmitter(WhirlyKit::ChangeSet &changes) : changes(changes) { }
+    void onOff(WhirlyKit::SimpleIdentity drawID,bool on) override
+    {
+        changes.push_back(new WhirlyKit::OnOffChangeRequest(drawID,on));
+    }
+    void texture(WhirlyKit::SimpleIdentity drawID,int which,const WhirlyKit::QIFDrawTex &tex) override
+    {
+        if (tex.relSet)
+            changes.push_back(new WhirlyKit::DrawTexChangeRequest(drawID,which,tex.texID,tex.size,tex.border,tex.relLevel,tex.relX,tex.relY));
+        else
+            changes.push_back(new WhirlyKit::DrawTexChangeRequest(drawID,which,tex.texID));
+    }
+    void uniforms(WhirlyKit::SimpleIdentity drawID,float t,const unsigned char color[4]) override
+    {
+        unsigned char c[4] = {color[0],color[1],color[2],color[3]};
+        WhirlyKit::SingleVertexAttributeSet attrs;
+        attrs.insert(WhirlyKit::SingleVertexAttribute(WhirlyKit::u_interpNameID,-1,t));
+        attrs.insert(WhirlyKit::SingleVertexAttribute(WhirlyKit::u_colorNameID,-1,c));
+        changes.push_back(new WhirlyKit::DrawUniformsChangeRequest(drawID,attrs));
+    }
+    WhirlyKit::ChangeSet &changes;
+};
+
 // offto: adds the duration of a scope to a pipeline counter, under the stats lock
 struct PipelineTimer
 {
@@ -593,14 +620,15 @@ bool QIFRenderState::hasUpdate(const std::vector<double> &curFrames, bool master
 }
 
 // Update what the scene is looking at.  Ideally not every frame.
-void QIFRenderState::updateScene(Scene *,
+void QIFRenderState::updateScene(Scene *scene,
                                  const std::vector<double> &curFrames,
                                  TimeInterval now,
                                  __unused bool flipY,
                                  const RGBAColor &color,
                                  bool masterEnable,
                                  ChangeSet &changes,
-                                 UpdateInfo *info)
+                                 UpdateInfo *info,
+                                 QIFDrawStateCache *drawCache)
 {
     if (tiles.empty())
         return;
@@ -611,6 +639,12 @@ void QIFRenderState::updateScene(Scene *,
     lastCurFrames = curFrames;
     lastMasterEnable = masterEnable;
     
+    // Without a cache every request is sent, as the original code did
+    QIFDrawStateCache noCache;
+    QIFDrawStateCache &cache = drawCache ? *drawCache : noCache;
+    ChangeSetEmitter emitter(changes);
+    cache.beginPass();
+
     // We allow one or more points in the time slices where we're rendering
     // Useful if we're doing multi-stage rendering
     for (unsigned int focusID=0;focusID<curFrames.size();focusID++) {
@@ -676,72 +710,52 @@ void QIFRenderState::updateScene(Scene *,
                     info->maxFallbackRelLevel = std::max(info->maxFallbackRelLevel, tileID.level - frame.texNode.level);
                 }
             }
+            // offto: work out the state each drawable should end up in, then send only what
+            // differs from what it last received (drawCache). Same end state as before, when
+            // the old code sent every texture, on/off and uniform of every tile, every update.
+            QIFDrawState want;
             if (enable) {
                 // Assign as many active textures as we've got
-                for (unsigned int ii=0;ii<numFrames;ii++) {
-                    const auto frame = tile->frames[activeFrames[ii]];
-                    if (!frame.texIDs.empty()) {
-                        const auto relLevel = (unsigned)std::max(0, tileID.level - frame.texNode.level);
-                        const int relX = tileID.x - frame.texNode.x * (int)(1U<<relLevel);
-                        int tileIDY = tileID.y;
-                        int frameIdentY = frame.texNode.y;
-                        // Note: Confused why this works for both modes
-                        //       Might be how the textures are laid out.  Still.  Wah?
-    //                    if (flipY) {
-                            tileIDY = (int)(1U<<(unsigned)tileID.level)-tileIDY-1;
-                            frameIdentY = (int)(1U<<(unsigned)frame.texNode.level)-frameIdentY-1;
-    //                    }
-                        const int relY = tileIDY - frameIdentY * (int)(1U<<relLevel);
-                        
-                        for (const auto drawID : tile->instanceDrawIDs[focusID]) {
-                            // Note: In this case we just use the first texture
-                            //       We're assuming that each frame has only one texture
-                            if (frame.texIDs.empty())
-                                changes.push_back(new DrawTexChangeRequest(drawID,ii,EmptyIdentity,texSize,borderSize,relLevel,relX,relY));
-                            else
-                                changes.push_back(new DrawTexChangeRequest(drawID,ii,frame.texIDs[0],texSize,borderSize,relLevel,relX,relY));
-                        //                        NSLog(@"tile %d: (%d,%d), frame = %d getting texNode %d: (%d,%d texID = %d)",tileID.level,tileID.x,tileID.y,ii,frame.texNode.level,frame.texNode.x,frame.texNode.y,frame.texID);
-                        }
-                    } else {
+                for (unsigned int ii=0;ii<numFrames && ii<2;ii++) {
+                    const auto &frame = tile->frames[activeFrames[ii]];
+                    if (frame.texIDs.empty()) {
                         enable = false;
                         break;
                     }
-                }
-                // Clear out the other texture if there is one
-                if (numFrames == 1) {
-                    for (auto drawID : tile->instanceDrawIDs[focusID]) {
-                        changes.push_back(new DrawTexChangeRequest(drawID,1,EmptyIdentity));
-                    }
-                }
-                
-                // Interpolate between two frames or snap to one
-                double t = 0.0;
-                if (numFrames > 1) {
-                    t = curFrame-activeFrames[0];
-                }
-                
-                // We set the interpolation value per drawable
-                SingleVertexAttributeSet attrs;
-                attrs.insert(SingleVertexAttribute(u_interpNameID,-1,(float)t));
-                attrs.insert(SingleVertexAttribute(u_colorNameID,-1,color4));
-                
-                // Turn it all on
-                for (auto drawID : tile->instanceDrawIDs[focusID]) {
-                    changes.push_back(new OnOffChangeRequest(drawID,true));
-                    changes.push_back(new DrawUniformsChangeRequest(drawID,attrs));
+                    const auto relLevel = (unsigned)std::max(0, tileID.level - frame.texNode.level);
+                    const int relX = tileID.x - frame.texNode.x * (int)(1U<<relLevel);
+                    // Note: Confused why this works for both modes
+                    //       Might be how the textures are laid out.  Still.  Wah?
+                    const int tileIDY = (int)(1U<<(unsigned)tileID.level)-tileID.y-1;
+                    const int frameIdentY = (int)(1U<<(unsigned)frame.texNode.level)-frame.texNode.y-1;
+                    const int relY = tileIDY - frameIdentY * (int)(1U<<relLevel);
+                    // We just use the first texture: one texture per frame
+                    want.tex[ii] = QIFDrawTex(frame.texIDs[0],texSize,borderSize,(int)relLevel,relX,relY);
                 }
             }
-            
-            // Just turn the geometry off if we've got nothing
-            if (!enable) {
-                for (auto drawID : tile->instanceDrawIDs[focusID]) {
-                    changes.push_back(new OnOffChangeRequest(drawID,false));
-                    changes.push_back(new DrawTexChangeRequest(drawID,0,EmptyIdentity));
-                    changes.push_back(new DrawTexChangeRequest(drawID,1,EmptyIdentity));
-                }
+            if (enable) {
+                // The other texture slot stays empty with a single frame
+                if (numFrames == 1)
+                    want.tex[1] = QIFDrawTex();
+                want.on = true;
+                // Interpolate between two frames or snap to one
+                want.hasUniforms = true;
+                want.t = (numFrames > 1) ? (float)(curFrame-activeFrames[0]) : 0.0f;
+                memcpy(want.color,color4,4);
+            } else {
+                // Just turn the geometry off if we've got nothing
+                want = QIFDrawState();
+            }
+
+            for (const auto drawID : tile->instanceDrawIDs[focusID]) {
+                const bool exists = drawCache && scene && scene->getDrawable(drawID);
+                cache.apply(drawID,want,exists,emitter);
             }
         }
     }
+
+    // Forget drawables that are no longer in the render state (their tiles went away)
+    cache.endPass();
 }
     
 QuadImageFrameLoader::QuadImageFrameLoader(const SamplingParams &params,Mode mode) :
@@ -1527,7 +1541,7 @@ void QuadImageFrameLoader::updateForFrame(RendererFrameInfo *frameInfo)
     TimeInterval now = control->getScene()->getCurrentTime();
     QIFRenderState::UpdateInfo info;
     const auto start = std::chrono::steady_clock::now();
-    renderState.updateScene(frameInfo->scene, curFrames, now, flipY, color, masterEnable, changes, &info);
+    renderState.updateScene(frameInfo->scene, curFrames, now, flipY, color, masterEnable, changes, &info, &drawStateCache);
     const double dt = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
     {
         std::lock_guard<std::mutex> guardLock(statsLock);
