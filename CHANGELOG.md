@@ -1,0 +1,22 @@
+# Changelog — offto fork
+
+Newest first. Upstream history before the fork lives in git (`v3.5` tag).
+
+## 2026-10-25
+
+### Added
+- `SamplingParams.viewUpdatePeriod` (iOS: `MaplySamplingParams.viewUpdatePeriod`): how often the
+  quad tree re-evaluates tiles while the view moves. 0 = engine default (0.1 s).
+- Host tests for the shared core: `common/WhirlyGlobeLib/test/run_tests.sh`.
+- `PATCHES.md`: every divergence from v3.5 and how each app consumes this branch.
+
+### Fixed
+- `QuadTreeNew::evalNodeVisible`: off-screen or back-facing ancestors no longer hide min-level
+  tiles, so `minImportanceTop = 0` keeps the whole min level resident.
+- `ImageTile_iOS` leaked a texture built by `preprocessTexture()` when the tile was cancelled
+  before merge.
+- `SphericalEarthChunkManager` (stickers) now hands off the texture it takes from an image tile
+  (`clearTexture()`), so the tile no longer frees it a second time.
+
+### Changed
+- Android: link with a 16 KB max page size (Google Play requirement).
