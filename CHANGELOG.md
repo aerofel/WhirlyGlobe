@@ -2,6 +2,16 @@
 
 Newest first. Upstream history before the fork lives in git (`v3.5` tag).
 
+## 2026-10-25 (renderer: draw groups)
+
+### Fixed
+- `SceneRendererMTL::updateWorkGroups` rebuilt every non-empty render-target container's indirect
+  command buffers on every frame (its skip test ignored `modified`). Now only modified containers
+  are rebuilt; drawables moving out of a container, `setMaster` / `setInstMaster` /
+  `setInstanceData`, render-target add/remove and resize mark them. Rollback:
+  `SceneRenderer::setRebuildOnlyModifiedWorkGroups(false)` /
+  `MaplyBaseViewController.renderOnlyChangedDrawGroups = NO`.
+
 ## 2026-10-25 (Offto tile plan, Phase 4)
 
 ### Added
