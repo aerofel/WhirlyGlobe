@@ -283,6 +283,17 @@ NSString * const MaplyQuadImageLoaderFetcherName = @"QuadImageLoader";
     retStats.enabledTiles = pipe.enabledTiles;
     retStats.fallbackTiles = pipe.fallbackTiles;
     retStats.maxFallbackRelLevel = pipe.maxFallbackRelLevel;
+    retStats.requests = pipe.requests;
+    retStats.cancels = pipe.cancels;
+    retStats.mergesOK = pipe.mergesOK;
+    retStats.mergesCancelled = pipe.mergesCancelled;
+    retStats.mergesFailed = pipe.mergesFailed;
+    retStats.waitSeconds = pipe.waitSeconds;
+    retStats.parseSeconds = pipe.parseSeconds;
+    NSMutableArray<NSNumber *> *hist = [NSMutableArray arrayWithCapacity:6];
+    for (int ii=0;ii<6;ii++)
+        [hist addObject:@(pipe.latencyHist[ii])];
+    retStats.latencyHistogram = hist;
 
     return retStats;
 }

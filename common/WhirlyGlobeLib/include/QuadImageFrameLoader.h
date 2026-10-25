@@ -97,6 +97,11 @@ public:
     
     // Clear out any temp stored data
     virtual void clearLoadReturn();
+
+    // offto: when the current fetch was requested and when its data came back (steady clock
+    // seconds, 0 = not yet), for the loader's latency stats
+    double requestTime = 0.0;
+    double fetchedTime = 0.0;
     
 protected:
     State state;
@@ -538,11 +543,31 @@ public:
             int enabledTiles = 0;
             int fallbackTiles = 0;
             int maxFallbackRelLevel = 0;
+            // Per frame request: fetches started, fetches cancelled while still loading, and
+            // merges by outcome (cancelled = the tile was dropped or reloaded meanwhile)
+            int64_t requests = 0;
+            int64_t cancels = 0;
+            int64_t mergesOK = 0;
+            int64_t mergesCancelled = 0;
+            int64_t mergesFailed = 0;
+            // Successful merges: time from request to fetched data (sqlite/network wait) and
+            // from fetched data to merged (parse/decode + queueing), summed
+            double waitSeconds = 0.0;
+            double parseSeconds = 0.0;
+            // Request -> merged latency of successful merges, in buckets:
+            // <50, <100, <200, <400, <800, >=800 ms
+            int64_t latencyHist[6] = {0,0,0,0,0,0};
         } pipeline;
     };
 
     /// Return the stats (thread safe)
     Stats getStats() const;
+
+    /// offto: a frame fetch started / was cancelled while loading (any thread)
+    void noteFetchRequested();
+    void noteFetchCancelled();
+    /// offto: steady clock in seconds, for the pipeline timestamps
+    static double pipelineNow();
     
     /// Shut everything down and remove our geometry and resources
     void cleanup(PlatformThreadInfo *threadInfo,ChangeSet &changes);

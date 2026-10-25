@@ -84,6 +84,17 @@
 @property (nonatomic) int enabledTiles;
 @property (nonatomic) int fallbackTiles;
 @property (nonatomic) int maxFallbackRelLevel;
+/// Frame fetches started, cancelled while still loading, and merges by outcome (cumulative).
+@property (nonatomic) int64_t requests;
+@property (nonatomic) int64_t cancels;
+@property (nonatomic) int64_t mergesOK;
+@property (nonatomic) int64_t mergesCancelled;
+@property (nonatomic) int64_t mergesFailed;
+/// Successful merges: summed seconds from request to fetched data, and from fetched to merged.
+@property (nonatomic) double waitSeconds;
+@property (nonatomic) double parseSeconds;
+/// Request -> merged latency of successful merges: counts for <50, <100, <200, <400, <800, >=800 ms.
+@property (nonatomic,nonnull) NSArray<NSNumber *> *latencyHistogram;
 
 @end
 

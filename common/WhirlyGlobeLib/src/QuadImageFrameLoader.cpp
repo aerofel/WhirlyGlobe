@@ -83,6 +83,10 @@ QIFFrameAsset::QIFFrameAsset(QuadFrameInfoRef frameInfo) :
 void QIFFrameAsset::setupFetch(QuadImageFrameLoader *loader)
 {
     state = Loading;
+    requestTime = QuadImageFrameLoader::pipelineNow();
+    fetchedTime = 0.0;
+    if (loader)
+        loader->noteFetchRequested();
 }
 
 void QIFFrameAsset::clear(PlatformThreadInfo *threadInfo,QuadImageFrameLoader *loader,QIFBatchOps *batchOps,ChangeSet &changes)
@@ -116,6 +120,8 @@ bool QIFFrameAsset::updateFetching(PlatformThreadInfo *threadInfo,QuadImageFrame
 
 void QIFFrameAsset::cancelFetch(PlatformThreadInfo *threadInfo,QuadImageFrameLoader *loader,QIFBatchOps *batchOps)
 {
+    if (state == Loading && loader)
+        loader->noteFetchCancelled();
     state = Empty;
 }
 
@@ -147,11 +153,13 @@ void QIFFrameAsset::setLoadReturn(RawDataRef data)
 void QIFFrameAsset::setLoadReturnRef(QuadLoaderReturnRef &&inLoadReturn)
 {
     loadReturnRef = std::move(inLoadReturn);
+    fetchedTime = QuadImageFrameLoader::pipelineNow();
 }
 
 void QIFFrameAsset::setLoadReturnRef(const QuadLoaderReturnRef &inLoadReturn)
 {
     loadReturnRef = inLoadReturn;
+    fetchedTime = QuadImageFrameLoader::pipelineNow();
 }
 
 void QIFFrameAsset::clearLoadReturn()
@@ -1100,6 +1108,36 @@ void QuadImageFrameLoader::mergeLoadedTile(PlatformThreadInfo *threadInfo,QuadLo
         }
     }
 
+    // offto: outcome and latency of this merge
+    {
+        double wait = -1.0, parse = -1.0;
+        if (!failed && tile) {
+            if (const auto frameAsset = tile->findFrameFor(loadReturn->frame)) {
+                const double now = pipelineNow();
+                if (frameAsset->requestTime > 0.0 && frameAsset->fetchedTime >= frameAsset->requestTime) {
+                    wait = frameAsset->fetchedTime - frameAsset->requestTime;
+                    parse = now - frameAsset->fetchedTime;
+                }
+            }
+        }
+        std::lock_guard<std::mutex> guardLock(statsLock);
+        auto &pipe = stats.pipeline;
+        if (!failed) {
+            pipe.mergesOK++;
+            if (wait >= 0.0) {
+                pipe.waitSeconds += wait;
+                pipe.parseSeconds += parse;
+                const double ms = (wait + parse) * 1000.0;
+                const int bucket = ms < 50 ? 0 : ms < 100 ? 1 : ms < 200 ? 2 : ms < 400 ? 3 : ms < 800 ? 4 : 5;
+                pipe.latencyHist[bucket]++;
+            }
+        } else if (!tile || loadReturn->cancel) {
+            pipe.mergesCancelled++;
+        } else {
+            pipe.mergesFailed++;
+        }
+    }
+
     // For whatever reason, didn't correctly integrate the tile, so now delete everything
     if (failed)
     {
@@ -1588,6 +1626,23 @@ void QuadImageFrameLoader::makeStats()
     stats = newStats;
 }
     
+void QuadImageFrameLoader::noteFetchRequested()
+{
+    std::lock_guard<std::mutex> guardLock(statsLock);
+    stats.pipeline.requests++;
+}
+
+void QuadImageFrameLoader::noteFetchCancelled()
+{
+    std::lock_guard<std::mutex> guardLock(statsLock);
+    stats.pipeline.cancels++;
+}
+
+double QuadImageFrameLoader::pipelineNow()
+{
+    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
 QuadImageFrameLoader::Stats QuadImageFrameLoader::getStats() const
 {
     std::lock_guard<std::mutex> guardLock(statsLock);
