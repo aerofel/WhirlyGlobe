@@ -20,14 +20,14 @@ package com.mousebird.maply;
 
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.Looper;
 import android.util.Log;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Simple Tile Fetcher is meant for sub classing.
@@ -209,6 +209,9 @@ public class SimpleTileFetcher extends HandlerThread implements TileFetcher
     protected void scheduleLoading()
     {
         if (!scheduled) {
+            // offto: one updateLoading chain at a time. The flag was never set, so every batch of
+            // requests started another self-reposting chain on this looper.
+            scheduled = true;
             Handler handler = new Handler(getLooper());
             handler.post(this::updateLoading);
         }
@@ -228,23 +231,18 @@ public class SimpleTileFetcher extends HandlerThread implements TileFetcher
         // Load the data tile
         final byte[] data = dataForTile(tileInfo.fetchInfo,tileInfo.fetchInfo.tileID);
 
-        final Looper looper = getLooper();
-
         // We assume they'll be parsing things which will take time
-        tasks.add(new Runnable() {
-            @Override
-            public void run() {
+        tasks.add(() -> {
+            try {
                 if (data != null || neverFail)
                     tileInfo.request.callback.success(tileInfo.request, data);
                 else
                     tileInfo.request.callback.failure(tileInfo.request,"Failed to read MBTiles File");
-
-                // Add more tasks, if there are any
-                Handler handler = new Handler(looper);
-                handler.post(() -> {
-                    numParsing--;
-                    updateTasks();
-                });
+            } finally {
+                // offto: free the slot and refill it here, on the worker, instead of a round trip
+                // through this fetcher's looper behind the queued reads
+                numParsing.decrementAndGet();
+                updateTasks();
             }
         });
 
@@ -254,20 +252,32 @@ public class SimpleTileFetcher extends HandlerThread implements TileFetcher
         scheduleLoading();
     }
 
-    // Keep a certain number of tasks running for parsing, but no more
+    // Keep a certain number of tasks running for parsing, but no more (any thread)
     protected void updateTasks() {
         BaseController theControl = control.get();
         if (theControl == null)
             return;
 
-        if (numParsing < maxParsing && !tasks.isEmpty()) {
-            Runnable task = tasks.remove();
+        // offto: fill every free slot, not just one
+        while (!tasks.isEmpty()) {
+            final int running = numParsing.get();
+            if (running >= maxParsing)
+                return;
+            if (!numParsing.compareAndSet(running, running + 1))
+                continue;
+            final Runnable task = tasks.poll();
+            if (task == null) {
+                numParsing.decrementAndGet();
+                return;
+            }
             LayerThread workThread = theControl.getWorkingThread();
             if (workThread != null) {
-                workThread.addTask(task);
-                numParsing++;
+                // Always queue: run inline, a worker would nest the next task inside this one
+                workThread.addTask(task, true);
             } else {
+                numParsing.decrementAndGet();
                 valid = false;
+                return;
             }
         }
     }
@@ -354,8 +364,8 @@ public class SimpleTileFetcher extends HandlerThread implements TileFetcher
     // Keep track of the number of tiles parsing at once
     // The ThreadPoolExecutor gets testy beyond a certain number
     private int maxParsing = 8;
-    private int numParsing = 0;
-    protected Queue<Runnable> tasks = new LinkedList<>();
+    private final AtomicInteger numParsing = new AtomicInteger();
+    protected final Queue<Runnable> tasks = new ConcurrentLinkedQueue<>();
 
     // If set by the subclass, we'll just treat null data as valid
     // This is helpful when you have sparse data sets
