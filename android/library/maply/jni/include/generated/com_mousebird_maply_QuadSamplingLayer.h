@@ -79,6 +79,14 @@ JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadSamplingLayer_initialise
 JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadSamplingLayer_dispose
   (JNIEnv *, jobject);
 
+/*
+ * Class:     com_mousebird_maply_QuadSamplingLayer
+ * Method:    getViewUpdatePeriodNative
+ * Signature: ()D
+ */
+JNIEXPORT jdouble JNICALL Java_com_mousebird_maply_QuadSamplingLayer_getViewUpdatePeriodNative
+  (JNIEnv *, jobject);
+
 #ifdef __cplusplus
 }
 #endif

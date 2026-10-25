@@ -97,7 +97,15 @@ public class SamplingParams
      * Size of a tile in scren space (pixels^2).
      * Anything taking up less space than this will not be loaded.
      */
-    public native void setMinImportance(double minImport);
+    public void setMinImportance(double minImport) {
+        setMinImportanceNative(minImport);
+        // offto: the native setter reads a 0 minImportanceTop as "unset" and replaces it, which
+        // would undo a resident base level (iOS MaplySamplingParams.setMinImportance: same rule)
+        if (residentBase >= 0)
+            setMinImportanceTop(0.0);
+    }
+
+    private native void setMinImportanceNative(double minImport);
 
     /**
      * Size of a tile in scren space (pixels^2).
@@ -200,6 +208,37 @@ public class SamplingParams
      * Scale each bounding box by this amount before using it.
      */
     public native void setBoundsScale(float scale);
+
+    /**
+     * offto: how often (seconds) the quad tree re-evaluates tiles while the view moves.
+     * 0 (the default) keeps the engine's 0.1 s.
+     */
+    public native void setViewUpdatePeriod(double seconds);
+
+    public native double getViewUpdatePeriod();
+
+    private int residentBase = -1;
+
+    /**
+     * offto: keep this whole level resident (on- and off-screen) as the sampler's min level,
+     * like iOS MaplySamplingParams.residentBaseLevel. Sets minZoom, forceMinLevel and a 0
+     * minImportanceTop together; -1 = off.
+     */
+    public void setResidentBaseLevel(int level) {
+        if (level < 0) {
+            residentBase = -1;
+            return;
+        }
+        residentBase = level;
+        setMinZoom(level);
+        setForceMinLevel(true);
+        // 0 = every node of the min level passes; off-screen ones have importance 0 and still get in
+        setMinImportanceTop(0.0);
+    }
+
+    public int getResidentBaseLevel() {
+        return residentBase;
+    }
 
     /**
      * If set, we won't load any tiles outside these boundaries.

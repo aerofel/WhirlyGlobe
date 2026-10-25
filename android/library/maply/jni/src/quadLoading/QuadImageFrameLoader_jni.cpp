@@ -164,7 +164,7 @@ JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_setShaderID
 
 extern "C"
 JNIEXPORT jint JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_getStatsNative
-  (JNIEnv *env, jobject obj, jintArray totalTilesArr, jintArray tilesToLoadArr)
+  (JNIEnv *env, jobject obj, jintArray totalTilesArr, jintArray tilesToLoadArr, jlongArray countsArr, jdoubleArray secondsArr)
 {
     try
     {
@@ -189,6 +189,20 @@ JNIEXPORT jint JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_getStatsNat
                 env->SetIntArrayRegion(tilesToLoadArr, 0, tilesToLoad.size(), &tilesToLoad[0]);
             }
 
+            // offto: pipeline counters, in QuadImageFrameLoader.Stats.Pipeline order
+            const auto &p = stats.pipeline;
+            const jlong counts[18] = {
+                p.merges, p.renderStateBuilds, p.sceneUpdates, p.sceneUpdateChanges,
+                p.enabledTiles, p.fallbackTiles, p.maxFallbackRelLevel,
+                p.requests, p.cancels, p.mergesOK, p.mergesCancelled, p.mergesFailed,
+                p.latencyHist[0], p.latencyHist[1], p.latencyHist[2],
+                p.latencyHist[3], p.latencyHist[4], p.latencyHist[5] };
+            const jdouble seconds[5] = {
+                p.mergeSeconds, p.renderStateBuildSeconds, p.sceneUpdateSeconds,
+                p.waitSeconds, p.parseSeconds };
+            env->SetLongArrayRegion(countsArr, 0, 18, counts);
+            env->SetDoubleArrayRegion(secondsArr, 0, 5, seconds);
+
             return stats.numTiles;
         }
     }
@@ -209,4 +223,85 @@ JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_updatePrior
         }
     }
     MAPLY_STD_JNI_CATCH()
+}
+
+extern "C"
+JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_setTextureFadeDuration
+  (JNIEnv *env, jobject obj, jdouble value)
+{
+    try {
+        if (const auto loader = QuadImageFrameLoaderClassInfo::get(env,obj))
+        {
+            (*loader)->setTextureFadeDuration(value);
+        }
+    }
+    MAPLY_STD_JNI_CATCH()
+}
+
+extern "C"
+JNIEXPORT jdouble JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_getTextureFadeDuration
+  (JNIEnv *env, jobject obj)
+{
+    try {
+        if (const auto loader = QuadImageFrameLoaderClassInfo::get(env,obj))
+        {
+            return (*loader)->getTextureFadeDuration();
+        }
+    }
+    MAPLY_STD_JNI_CATCH()
+    return 0.0;
+}
+
+extern "C"
+JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_setUsesMipmaps
+  (JNIEnv *env, jobject obj, jboolean value)
+{
+    try {
+        if (const auto loader = QuadImageFrameLoaderClassInfo::get(env,obj))
+        {
+            (*loader)->setUsesMipmaps(value);
+        }
+    }
+    MAPLY_STD_JNI_CATCH()
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_getUsesMipmaps
+  (JNIEnv *env, jobject obj)
+{
+    try {
+        if (const auto loader = QuadImageFrameLoaderClassInfo::get(env,obj))
+        {
+            return (*loader)->getUsesMipmaps();
+        }
+    }
+    MAPLY_STD_JNI_CATCH()
+    return false;
+}
+
+extern "C"
+JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_setImagesPerTile
+  (JNIEnv *env, jobject obj, jint value)
+{
+    try {
+        if (const auto loader = QuadImageFrameLoaderClassInfo::get(env,obj))
+        {
+            (*loader)->setImagesPerTile(value);
+        }
+    }
+    MAPLY_STD_JNI_CATCH()
+}
+
+extern "C"
+JNIEXPORT jint JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_getImagesPerTile
+  (JNIEnv *env, jobject obj)
+{
+    try {
+        if (const auto loader = QuadImageFrameLoaderClassInfo::get(env,obj))
+        {
+            return (*loader)->getImagesPerTile();
+        }
+    }
+    MAPLY_STD_JNI_CATCH()
+    return 1;
 }

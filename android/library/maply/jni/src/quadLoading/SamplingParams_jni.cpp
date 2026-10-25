@@ -253,7 +253,7 @@ JNIEXPORT jint JNICALL Java_com_mousebird_maply_SamplingParams_getMaxTiles
 }
 
 extern "C"
-JNIEXPORT void JNICALL Java_com_mousebird_maply_SamplingParams_setMinImportance__D
+JNIEXPORT void JNICALL Java_com_mousebird_maply_SamplingParams_setMinImportanceNative
   (JNIEnv *env, jobject obj, jdouble minImport)
 {
 	try
@@ -590,4 +590,38 @@ JNIEXPORT jboolean JNICALL Java_com_mousebird_maply_SamplingParams_equalsNative
 		__android_log_print(ANDROID_LOG_ERROR, "Maply", "Crash in SamplingParams::equalsNative()");
 	}
 	return false;
+}
+extern "C"
+JNIEXPORT void JNICALL Java_com_mousebird_maply_SamplingParams_setViewUpdatePeriod
+		(JNIEnv *env, jobject obj, jdouble seconds)
+{
+	try
+	{
+		if (const auto params = SamplingParamsClassInfo::get(env,obj))
+		{
+			params->viewUpdatePeriod = seconds;
+		}
+	}
+	catch (...)
+	{
+		__android_log_print(ANDROID_LOG_ERROR, "Maply", "Crash in SamplingParams::setViewUpdatePeriod()");
+	}
+}
+
+extern "C"
+JNIEXPORT jdouble JNICALL Java_com_mousebird_maply_SamplingParams_getViewUpdatePeriod
+		(JNIEnv *env, jobject obj)
+{
+	try
+	{
+		if (const auto params = SamplingParamsClassInfo::get(env,obj))
+		{
+			return params->viewUpdatePeriod;
+		}
+	}
+	catch (...)
+	{
+		__android_log_print(ANDROID_LOG_ERROR, "Maply", "Crash in SamplingParams::getViewUpdatePeriod()");
+	}
+	return 0.0;
 }

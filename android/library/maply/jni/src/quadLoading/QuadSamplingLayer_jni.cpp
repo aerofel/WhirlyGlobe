@@ -165,3 +165,19 @@ JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadSamplingLayer_shutdownNative
     }
     MAPLY_STD_JNI_CATCH()
 }
+
+extern "C"
+JNIEXPORT jdouble JNICALL Java_com_mousebird_maply_QuadSamplingLayer_getViewUpdatePeriodNative
+  (JNIEnv *env, jobject obj)
+{
+    try
+    {
+        if (const auto control = QuadSamplingControllerInfo::get(env,obj))
+        {
+            if (const auto display = control->getDisplayControl())
+                return display->getViewUpdatePeriod();
+        }
+    }
+    MAPLY_STD_JNI_CATCH()
+    return 0.0;
+}

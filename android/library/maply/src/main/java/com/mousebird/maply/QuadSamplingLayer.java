@@ -85,9 +85,11 @@ public class QuadSamplingLayer extends Layer implements LayerThread.ViewWatcherI
     {
         super.startLayer(inLayerThread);
 
-        layerThread.addWatcher(this);
-
+        // offto: start first, so the watcher reads the controller's view update period
+        // (addWatcher runs inline when called on the layer thread)
         startNative(params,control.get().scene,control.get().renderControl);
+
+        layerThread.addWatcher(this);
     }
 
     public void preSceneFlush(LayerThread layerThread)
@@ -150,7 +152,7 @@ public class QuadSamplingLayer extends Layer implements LayerThread.ViewWatcherI
                     if (thisGeneration >= generation) {
                         viewUpdated(viewState);
                     }
-                }, LayerThread.UpdatePeriod);
+                }, (long)(getMinTime() * 1000));
             }
             layerThread.addChanges(changes);
         }
@@ -159,11 +161,15 @@ public class QuadSamplingLayer extends Layer implements LayerThread.ViewWatcherI
     public void tilesUnloaded(@NotNull TileID[] ids) {
     }
 
-    // Called no more often than 1/10 of a second
+    // offto: the controller's view update period (SamplingParams.setViewUpdatePeriod),
+    // 1/10 of a second by default
     public float getMinTime()
     {
-        return 0.1f;
+        final double period = getViewUpdatePeriodNative();
+        return period > 0.0 ? (float)period : 0.1f;
     }
+
+    private native double getViewUpdatePeriodNative();
 
     // Lags no more than 4s (if a user is continuously moving around, basically)
     public float getMaxLagTime()

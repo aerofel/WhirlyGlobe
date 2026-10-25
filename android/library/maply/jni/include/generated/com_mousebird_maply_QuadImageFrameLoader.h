@@ -90,10 +90,58 @@ JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_setShaderID
 /*
  * Class:     com_mousebird_maply_QuadImageFrameLoader
  * Method:    getStatsNative
- * Signature: ([I[I)I
+ * Signature: ([I[I[J[D)I
  */
 JNIEXPORT jint JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_getStatsNative
-  (JNIEnv *, jobject, jintArray, jintArray);
+  (JNIEnv *, jobject, jintArray, jintArray, jlongArray, jdoubleArray);
+
+/*
+ * Class:     com_mousebird_maply_QuadImageFrameLoader
+ * Method:    setTextureFadeDuration
+ * Signature: (D)V
+ */
+JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_setTextureFadeDuration
+  (JNIEnv *, jobject, jdouble);
+
+/*
+ * Class:     com_mousebird_maply_QuadImageFrameLoader
+ * Method:    getTextureFadeDuration
+ * Signature: ()D
+ */
+JNIEXPORT jdouble JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_getTextureFadeDuration
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_mousebird_maply_QuadImageFrameLoader
+ * Method:    setUsesMipmaps
+ * Signature: (Z)V
+ */
+JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_setUsesMipmaps
+  (JNIEnv *, jobject, jboolean);
+
+/*
+ * Class:     com_mousebird_maply_QuadImageFrameLoader
+ * Method:    getUsesMipmaps
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_getUsesMipmaps
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_mousebird_maply_QuadImageFrameLoader
+ * Method:    setImagesPerTile
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_setImagesPerTile
+  (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     com_mousebird_maply_QuadImageFrameLoader
+ * Method:    getImagesPerTile
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_mousebird_maply_QuadImageFrameLoader_getImagesPerTile
+  (JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }

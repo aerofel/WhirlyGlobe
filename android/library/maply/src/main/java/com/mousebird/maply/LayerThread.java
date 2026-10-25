@@ -678,6 +678,7 @@ public class LayerThread extends HandlerThread implements View.ViewWatcher
 		// Access to the watchers collection is synchronized by always being on the layer thread
 		addTask(() -> {
 			watchers.add(new ViewWatcher(watcher));
+			updatePeriodFromWatchers();
 
 			// Make sure an update gets through the system for this layer
 			// Note: Fix this
@@ -702,6 +703,7 @@ public class LayerThread extends HandlerThread implements View.ViewWatcher
 					break;
 				}
 			}
+			updatePeriodFromWatchers();
 		});
 	}
 	
@@ -779,8 +781,20 @@ public class LayerThread extends HandlerThread implements View.ViewWatcher
 		}
 	}
 
-	// Note: Hardwired to 1/10 second.  Lame.
+	// Default view update throttle: 1/10 second
 	public static long UpdatePeriod = 100;
+
+	// offto: the smallest minTime a watcher asks for, never more than UpdatePeriod
+	// (layer thread writes, any thread reads)
+	private volatile long updatePeriod = UpdatePeriod;
+
+	private void updatePeriodFromWatchers() {
+		long period = UpdatePeriod;
+		for (ViewWatcher theWatcher : watchers) {
+			period = Math.min(period, (long)(theWatcher.minTime * 1000));
+		}
+		updatePeriod = Math.max(period, 1);
+	}
 	
 	// Called when the view updates its information
 	public void viewUpdated(View view)
@@ -792,10 +806,11 @@ public class LayerThread extends HandlerThread implements View.ViewWatcher
 		if (viewState != null) {
 			final long now = System.currentTimeMillis();
 			final long timeUntil = now - viewUpdateLastCalled;
-			if (timeUntil >= UpdatePeriod) {
+			final long period = updatePeriod;
+			if (timeUntil >= period) {
 				updateWatchers(viewState, now);
 			} else {
-				scheduleLateUpdate(UpdatePeriod - timeUntil);
+				scheduleLateUpdate(period - timeUntil);
 			}
 		}
 	}

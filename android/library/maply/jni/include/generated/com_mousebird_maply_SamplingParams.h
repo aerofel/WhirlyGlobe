@@ -89,10 +89,10 @@ JNIEXPORT jint JNICALL Java_com_mousebird_maply_SamplingParams_getMaxTiles
 
 /*
  * Class:     com_mousebird_maply_SamplingParams
- * Method:    setMinImportance
+ * Method:    setMinImportanceNative
  * Signature: (D)V
  */
-JNIEXPORT void JNICALL Java_com_mousebird_maply_SamplingParams_setMinImportance__D
+JNIEXPORT void JNICALL Java_com_mousebird_maply_SamplingParams_setMinImportanceNative
   (JNIEnv *, jobject, jdouble);
 
 /*
@@ -256,6 +256,22 @@ JNIEXPORT void JNICALL Java_com_mousebird_maply_SamplingParams_initialise
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_com_mousebird_maply_SamplingParams_dispose
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_mousebird_maply_SamplingParams
+ * Method:    setViewUpdatePeriod
+ * Signature: (D)V
+ */
+JNIEXPORT void JNICALL Java_com_mousebird_maply_SamplingParams_setViewUpdatePeriod
+  (JNIEnv *, jobject, jdouble);
+
+/*
+ * Class:     com_mousebird_maply_SamplingParams
+ * Method:    getViewUpdatePeriod
+ * Signature: ()D
+ */
+JNIEXPORT jdouble JNICALL Java_com_mousebird_maply_SamplingParams_getViewUpdatePeriod
   (JNIEnv *, jobject);
 
 #ifdef __cplusplus

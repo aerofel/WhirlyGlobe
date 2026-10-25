@@ -229,6 +229,42 @@ public class QuadImageFrameLoader extends QuadImageLoaderBase
          * Per frame stats for current loading state
          */
         public FrameStats[] frameStats = null;
+
+        /**
+         * offto: pipeline counters, cumulative since the loader started (read the deltas)
+         */
+        public Pipeline pipeline = new Pipeline();
+    }
+
+    /**
+     * offto: the core's QuadImageFrameLoader::Stats::Pipeline, field for field.
+     */
+    public static class Pipeline
+    {
+        // Layer thread: tile merges and render-state builds, with their time
+        public long merges;
+        public double mergeSeconds;
+        public long renderStateBuilds;
+        public double renderStateBuildSeconds;
+        // Render thread: scene updates, their time and the change requests they emitted
+        public long sceneUpdates;
+        public double sceneUpdateSeconds;
+        public long sceneUpdateChanges;
+        // Render thread, last scene update only
+        public int enabledTiles;
+        public int fallbackTiles;
+        public int maxFallbackRelLevel;
+        // Frame requests, cancels while loading, and merges by outcome
+        public long requests;
+        public long cancels;
+        public long mergesOK;
+        public long mergesCancelled;
+        public long mergesFailed;
+        // Successful merges: request -> data and data -> merged, summed
+        public double waitSeconds;
+        public double parseSeconds;
+        // Request -> merged latency of successful merges: <50, <100, <200, <400, <800, >=800 ms
+        public long[] latencyHistogram = new long[6];
     }
 
     /**
@@ -244,9 +280,30 @@ public class QuadImageFrameLoader extends QuadImageLoaderBase
         stats.frameStats = new FrameStats[numFrames];
         int totalTiles[] = new int[numFrames];
         int tilesToLoad[] = new int[numFrames];
+        long counts[] = new long[18];
+        double seconds[] = new double[5];
 
         // Fetch the data like this because I'm lazy
-        stats.numTiles = getStatsNative(totalTiles, tilesToLoad);
+        stats.numTiles = getStatsNative(totalTiles, tilesToLoad, counts, seconds);
+        Pipeline p = stats.pipeline;
+        p.merges = counts[0];
+        p.renderStateBuilds = counts[1];
+        p.sceneUpdates = counts[2];
+        p.sceneUpdateChanges = counts[3];
+        p.enabledTiles = (int)counts[4];
+        p.fallbackTiles = (int)counts[5];
+        p.maxFallbackRelLevel = (int)counts[6];
+        p.requests = counts[7];
+        p.cancels = counts[8];
+        p.mergesOK = counts[9];
+        p.mergesCancelled = counts[10];
+        p.mergesFailed = counts[11];
+        System.arraycopy(counts, 12, p.latencyHistogram, 0, 6);
+        p.mergeSeconds = seconds[0];
+        p.renderStateBuildSeconds = seconds[1];
+        p.sceneUpdateSeconds = seconds[2];
+        p.waitSeconds = seconds[3];
+        p.parseSeconds = seconds[4];
         for (int ii=0;ii<numFrames;ii++)
         {
             FrameStats frameStats = new FrameStats();
@@ -258,5 +315,28 @@ public class QuadImageFrameLoader extends QuadImageLoaderBase
         return stats;
     }
 
-    private native int getStatsNative(int[] totalTiles,int[] tilesToLoad);
+    private native int getStatsNative(int[] totalTiles,int[] tilesToLoad,long[] counts,double[] seconds);
+
+    /**
+     * offto: fade a tile in over this many seconds when its own texture replaces the stretched
+     * ancestor it was showing (0 = off, the default).
+     */
+    public native void setTextureFadeDuration(double seconds);
+
+    public native double getTextureFadeDuration();
+
+    /**
+     * offto: give tile textures mipmaps (GLES: glGenerateMipmap at texture creation).
+     */
+    public native void setUsesMipmaps(boolean use);
+
+    public native boolean getUsesMipmaps();
+
+    /**
+     * offto: images one frame fetch carries (1-2). With 2, a single frame's images fill texture
+     * slots 0 and 1 (e.g. day + night from one fetch).
+     */
+    public native void setImagesPerTile(int num);
+
+    public native int getImagesPerTile();
 }
