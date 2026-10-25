@@ -68,6 +68,9 @@ public:
 protected:
     // Convert our own raw data into bytes of the appropriate format
     RawDataRef convertData();
+    RawDataRef convertData(const RawDataRef &data,int width,int height);
+    /// offto: fill mip levels 1... from texData (RGBA8) on the CPU
+    void uploadMipLevels(int bytesPerPixel);
 };
 
 typedef std::shared_ptr<TextureMTL> TextureMTLRef;

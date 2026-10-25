@@ -17,6 +17,7 @@
  */
 
 #import "TextureMTL.h"
+#import "MipmapRGBA8.h"
 #import "UIImage+Stuff.h"
 #import "RawData_NSData.h"
 #import <Accelerate/Accelerate.h>
@@ -121,6 +122,11 @@ static RawDataRef ConvertRGBA8888toRGBA5551(const RawDataRef &inData, int width,
 }
 
 RawDataRef TextureMTL::convertData()
+{
+    return convertData(texData,width,height);
+}
+
+RawDataRef TextureMTL::convertData(const RawDataRef &texData,int width,int height)
 {
     switch (format)
     {
@@ -355,8 +361,14 @@ bool TextureMTL::createInRenderer(const RenderSetupInfo *inSetupInfo)
 #endif
     }
 
+    // offto: RGBA8 and 565 data get their mip levels built on the CPU below (box filter);
+    // other formats keep the old behaviour (levels allocated for a shader to write).
+    const bool cpuMipmaps = usesMipmaps && texData &&
+                            (format == TexTypeUnsignedByte || format == TexTypeShort565) &&
+                            texData->getLen() >= (unsigned long)width * height * 4;
+
     // If there are mipmaps, we probably expect to write to them
-    if (usesMipmaps)
+    if (usesMipmaps && !cpuMipmaps)
     {
         desc.usage |= MTLTextureUsageShaderWrite;
     }
@@ -380,12 +392,38 @@ bool TextureMTL::createInRenderer(const RenderSetupInfo *inSetupInfo)
                             withBytes:convData->getRawData()
                           bytesPerRow:bytesPerRow];
         }
+        if (cpuMipmaps)
+            uploadMipLevels(bytesPerRow / width);
     }
 
     // We don't need the source data any more
     texData.reset();
 
     return texBuf.tex != nil;
+}
+
+void TextureMTL::uploadMipLevels(int bytesPerPixel)
+{
+    // Each level is box-filtered from the previous one in RGBA8, then converted like level 0
+    std::vector<uint8_t> prev, next;
+    const uint8_t *src = texData->getRawData();
+    int w = width, h = height;
+    for (NSUInteger level = 1; level < texBuf.tex.mipmapLevelCount; level++)
+    {
+        int nw = 0, nh = 0;
+        DownsampleRGBA8(src, w, h, next, nw, nh);
+        prev.swap(next);
+        src = prev.data();
+        w = nw;  h = nh;
+
+        const auto levelData = convertData(std::make_shared<RawDataWrapper>(prev.data(), prev.size(), false), w, h);
+        if (!levelData)
+            break;
+        [texBuf.tex replaceRegion:MTLRegionMake2D(0,0,w,h)
+                      mipmapLevel:level
+                        withBytes:levelData->getRawData()
+                      bytesPerRow:bytesPerPixel * w];
+    }
 }
 
 void TextureMTL::destroyInRenderer(const RenderSetupInfo *inSetupInfo,Scene *inScene)

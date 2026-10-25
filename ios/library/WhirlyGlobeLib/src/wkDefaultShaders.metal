@@ -547,10 +547,10 @@ fragment float4 fragmentTri_multiTex(
     if (numTextures == 0) {
         return vert.color;
     } else if (numTextures == 1) {
-        constexpr sampler sampler2d(coord::normalized, filter::linear);
+        constexpr sampler sampler2d(coord::normalized, filter::linear, mip_filter::linear);
         return vert.color * texArgs.tex[0].sample(sampler2d, vert.texCoord0);
     } else {
-        constexpr sampler sampler2d(coord::normalized, filter::linear);
+        constexpr sampler sampler2d(coord::normalized, filter::linear, mip_filter::linear);
         float4 color0 = texArgs.tex[0].sample(sampler2d, vert.texCoord0);
         // Note: There are times we may not want to reuse the same texture coordinates
         float4 color1 = texArgs.tex[1].sample(sampler2d, vert.texCoord0);
@@ -621,11 +621,11 @@ fragment float4 fragmentTri_multiTex_nightDay(
     if (numTextures == 0) {
         return vert.color;
     } else if (numTextures == 1) {
-        constexpr sampler sampler2d(coord::normalized, filter::linear);
+        constexpr sampler sampler2d(coord::normalized, filter::linear, mip_filter::linear);
         return vert.color * texArgs.tex[0].sample(sampler2d, vert.texCoord0);
     } else {
         // Note: There are times we may not want to reuse the same texture coordinates
-        constexpr sampler sampler2d(coord::normalized, filter::linear);
+        constexpr sampler sampler2d(coord::normalized, filter::linear, mip_filter::linear);
         float4 color0 = texArgs.tex[0].sample(sampler2d, vert.texCoord0);
         float4 color1 = texArgs.tex[1].sample(sampler2d, vert.texCoord0);
         return vert.color * mix(color0,color1, 1.0 - vert.ndotl);

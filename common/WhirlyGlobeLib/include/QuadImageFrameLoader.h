@@ -426,6 +426,10 @@ public:
 
     /// In-memory texture type
     void setTexType(TextureType type) { texType = type; }
+
+    /// offto: give tile textures a full mip chain (trilinear minification, no shimmer)
+    void setUsesMipmaps(bool use) { usesMipmaps = use; }
+    bool getUsesMipmaps() const { return usesMipmaps; }
     
     /// If we're using border pixels, set the individual texture size and border size
     void setTexSize(int texSize,int borderSize);
@@ -691,6 +695,7 @@ protected:
     // offto: what each tile drawable last received from updateScene (render thread only)
     QIFDrawStateCache drawStateCache;
     double textureFadeDuration = 0.0;
+    bool usesMipmaps = false;
     
     bool changesSinceLastFlush;
     

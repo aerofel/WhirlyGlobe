@@ -194,6 +194,14 @@ extern NSString * _Nonnull const MaplyQuadImageLoaderFetcherName;
  */
 @property (nonatomic) MaplyQuadImageFormat imageFormat;
 
+/**
+ offto: give each tile texture a full mip chain, built on the CPU (RGBA and 565 formats), so
+ minified tiles (the globe's limb, tilted views) filter smoothly instead of shimmering.
+ The shader's sampler must use a mip filter. Costs a third more texture memory. Default NO.
+ Set before the loader starts (it is read in its delayed init).
+ */
+@property (nonatomic) bool generateMipmaps;
+
 @end
 
 /**

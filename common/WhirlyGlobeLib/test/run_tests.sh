@@ -14,3 +14,5 @@ c++ $flags "$here/QIFDrawStateCacheTests.cpp" "$lib/src/QIFDrawStateCache.cpp" -
 "$out-ds"
 c++ $flags "$here/GlobeMotionTests.cpp" "$lib/src/GlobeMotion.cpp" -o "$out-gm"
 "$out-gm"
+c++ $flags "$here/MipmapRGBA8Tests.cpp" "$lib/src/MipmapRGBA8.cpp" -o "$out-mm"
+"$out-mm"

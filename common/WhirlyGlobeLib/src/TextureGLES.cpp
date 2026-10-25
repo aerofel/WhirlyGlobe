@@ -124,8 +124,10 @@ bool TextureGLES::createInRenderer(const RenderSetupInfo *inSetupInfo)
     
     GLenum interTypeGL = (interpType == TexInterpNearest) ? GL_NEAREST : GL_LINEAR;
     // Set the texture parameters to use a minifying filter and a linear filter (weighted average)
+    // offto: trilinear (was GL_NEAREST_MIPMAP_LINEAR: nearest texel within each level)
     if (usesMipmaps)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                        (interpType == TexInterpNearest) ? GL_NEAREST_MIPMAP_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
     else
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, interTypeGL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, interTypeGL);
