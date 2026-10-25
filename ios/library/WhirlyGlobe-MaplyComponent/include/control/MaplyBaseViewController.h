@@ -1483,6 +1483,12 @@ typedef void (__strong ^InitCompletionBlock)(void);
 /// Turn on/off performance output (goes to the log periodically).
 @property (nonatomic,assign) bool performanceOutput;
 
+/**
+ offto: rebuild the renderer's Metal indirect command buffers only for render targets whose
+ drawables changed (default YES). NO = the v3.5 behaviour, rebuilt every frame.
+ */
+@property (nonatomic,assign) bool renderOnlyChangedDrawGroups;
+
 /// Turn on/off debug outlines for layout objects
 @property (nonatomic,assign) bool showDebugLayoutBoundaries;
 

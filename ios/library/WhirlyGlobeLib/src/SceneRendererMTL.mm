@@ -198,6 +198,7 @@ bool SceneRendererMTL::resize(int sizeX,int sizeY)
     defaultTarget->width = sizeX;
     defaultTarget->height = sizeY;
     defaultTarget->init(this, NULL, EmptyIdentity);
+    markWorkGroupsModified();
     
     return true;
 }
@@ -320,7 +321,17 @@ void SceneRendererMTL::updateWorkGroups(RendererFrameInfo *inFrameInfo)
     if (@available(iOS 13.0, *)) {
         for (const auto &workGroup : workGroups) {
             for (const auto &targetContainer : workGroup->renderTargetContainers) {
-                if (targetContainer->drawables.empty() && !targetContainer->modified)
+                // offto: v3.5 skipped only empty, unmodified containers, so every non-empty one
+                // was rebuilt (new indirect command buffers, every draw re-encoded) on every
+                // frame: ~1.2 ms/frame of main thread while panning with nothing changing, 49 %
+                // of it during a pinch (iPad Pro M4). What the commands bind is stable
+                // (uniform/lighting/argument buffers are fixed and blit-updated; residency is
+                // re-collected when preProcess reports a change), so rebuild only on `modified`:
+                // add/remove/move in or out, program, order/priority, render target, z-buffer,
+                // textures/values (setValuesChanged/setTexturesChanged), render target or size
+                // changes (markWorkGroupsModified).
+                if (rebuildOnlyModified ? !targetContainer->modified
+                                        : (targetContainer->drawables.empty() && !targetContainer->modified))
                     continue;
                 RenderTargetContainerMTLRef targetContainerMTL = std::dynamic_pointer_cast<RenderTargetContainerMTL>(targetContainer);
                 teardownInfoMTL->releaseDrawGroups(this,targetContainerMTL->drawGroups);

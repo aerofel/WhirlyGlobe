@@ -460,6 +460,17 @@ using namespace WhirlyKit;
 
 static const float PerfOutputDelay = 15.0;
 
+- (bool)renderOnlyChangedDrawGroups
+{
+    return renderControl && renderControl->sceneRenderer ? renderControl->sceneRenderer->getRebuildOnlyModifiedWorkGroups() : true;
+}
+
+- (void)setRenderOnlyChangedDrawGroups:(bool)on
+{
+    if (renderControl && renderControl->sceneRenderer)
+        renderControl->sceneRenderer->setRebuildOnlyModifiedWorkGroups(on);
+}
+
 - (void)setPerformanceOutput:(bool)performanceOutput
 {
     if (_performanceOutput == performanceOutput)

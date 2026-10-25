@@ -51,6 +51,7 @@ BasicDrawableRef BasicDrawableInstance::getMaster() const
 void BasicDrawableInstance::setMaster(BasicDrawableRef newMaster)
 {
     basicDraw = newMaster;
+    setValuesChanged();     // offto: the encoded geometry changes
 }
 
 BasicDrawableRef BasicDrawableInstance::getInstMaster() const
@@ -61,6 +62,7 @@ BasicDrawableRef BasicDrawableInstance::getInstMaster() const
 void BasicDrawableInstance::setInstMaster(BasicDrawableRef newInstMaster)
 {
     instDraw = newInstMaster;
+    setValuesChanged();     // offto: the encoded instance buffers change
 }
     
 Mbr BasicDrawableInstance::getLocalMbr() const
@@ -414,6 +416,7 @@ void BasicDrawableInstance::setInstanceData(int numInstances,RawDataRef data)
 {
     this->numInstances = numInstances;
     this->instData = data;
+    setValuesChanged();     // offto: the encoded instance count/buffer changes
 }
 
 }

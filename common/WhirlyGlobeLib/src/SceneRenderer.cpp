@@ -175,6 +175,14 @@ void SceneRenderer::addRenderTarget(RenderTargetRef newTarget)
     const auto &workGroup = workGroups[WorkGroup::Offscreen];
     workGroup->renderTargetContainers.push_back(workGroup->makeRenderTargetContainer(newTarget));
     renderTargets.insert(renderTargets.begin(),std::move(newTarget));
+    markWorkGroupsModified();
+}
+
+void SceneRenderer::markWorkGroupsModified()
+{
+    for (auto &workGroup : workGroups)
+        for (auto &con : workGroup->renderTargetContainers)
+            con->modified = true;
 }
 
 void SceneRenderer::addDrawable(DrawableRef newDrawable)
@@ -257,6 +265,10 @@ void SceneRenderer::updateWorkGroups(RendererFrameInfo *frameInfo)
                     renderTargetCon->drawables.erase(it);
                 offDrawables.insert(draw);
             }
+            // offto: turned off (setEnable, time range, visibility) sets no flag of its own; the
+            // container's draw groups still hold it, so they must be rebuilt
+            if (!drawsToMoveOut.empty())
+                renderTargetCon->modified = true;
         }
     }
 }
@@ -287,6 +299,7 @@ void SceneRenderer::removeRenderTarget(SimpleIdentity targetID)
             break;
         }
     }
+    markWorkGroupsModified();
 }
 
 void SceneRenderer::defaultTargetInit(RenderTarget *)

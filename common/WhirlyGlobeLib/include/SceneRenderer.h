@@ -278,6 +278,14 @@ public:
 
     /// Move things around as required by outside updates
     virtual void updateWorkGroups(RendererFrameInfo *frameInfo);
+
+    /// offto: mark every render target container modified (its draw groups are rebuilt next frame)
+    void markWorkGroupsModified();
+
+    /// offto: rebuild a container's draw groups only when it was modified (default). Off = the
+    /// v3.5 behaviour, every non-empty container rebuilt every frame (Metal indirect commands).
+    void setRebuildOnlyModifiedWorkGroups(bool on) { rebuildOnlyModified = on; markWorkGroupsModified(); }
+    bool getRebuildOnlyModifiedWorkGroups() const { return rebuildOnlyModified; }
         
     /// Add a render target to start rendering too
     virtual void addRenderTarget(RenderTargetRef newTarget);
@@ -443,6 +451,7 @@ protected:
 
     std::vector<RenderTargetRef> renderTargets;
     std::vector<WorkGroupRef> workGroups;
+    bool rebuildOnlyModified = true;
 
     // Drawables that we currently know about, but are off
     std::set<DrawableRef> offDrawables;
