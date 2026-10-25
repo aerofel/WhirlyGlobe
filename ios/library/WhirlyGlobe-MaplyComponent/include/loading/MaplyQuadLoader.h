@@ -189,8 +189,8 @@ typedef void (__strong ^InitCompletionBlock)(void);
 
 /**
     The level the sampling layer is currently loading, with a fraction for how far the view is
-    toward the next one (e.g. 5.4). -1 before the first evaluation. Safe from any thread.
-    (offto fork)
+    toward the next one (e.g. 5.4). -1 before the first evaluation. Call it on the main thread,
+    like getZoomSlot, and not during shutdown. (offto fork)
  */
 - (float)getZoomLevel;
 
