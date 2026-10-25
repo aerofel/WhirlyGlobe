@@ -35,7 +35,21 @@
 @property (nonatomic,nonnull,strong) MaplyCoordinateSystem *coordSys;
 
 /// Min zoom level for sampling.  Don't set this to anything other than 0 or 1
+/// (larger values are ignored; use residentBaseLevel).
 @property (nonatomic) int minZoom;
+
+/**
+    Keep EVERY tile of this level loaded, on- and off-screen, and never load anything coarser
+    (offto fork). Sets minZoom to this level, forces it (forceMinLevel) and gives it an
+    importance threshold of 0, which setMinImportance: then leaves alone.
+
+    A loading tile then falls back to at worst this level, and turning the globe never reveals
+    an area without imagery. Cost: 4^level tiles resident (64 at level 3). Unlike minZoom this
+    accepts levels above 1: what made those unsafe (off-screen base tiles dropped, then missing
+    after a spin) cannot happen when the whole level stays resident. Set it before
+    setMinImportance: or after, either works. -1 = not used (default).
+ */
+@property (nonatomic) int residentBaseLevel;
 
 /// Max zoom level for sampling
 @property (nonatomic) int maxZoom;

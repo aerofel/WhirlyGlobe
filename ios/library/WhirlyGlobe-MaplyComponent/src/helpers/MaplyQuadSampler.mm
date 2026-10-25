@@ -26,14 +26,38 @@
 using namespace WhirlyKit;
 
 @implementation MaplySamplingParams
+{
+    int residentBase;
+}
 
 - (instancetype)init
 {
     self = [super init];
+    residentBase = -1;
     self.singleLevel = true;
     self.forceMinLevel = true;
 
     return self;
+}
+
+- (int)residentBaseLevel
+{
+    return residentBase;
+}
+
+- (void)setResidentBaseLevel:(int)level
+{
+    if (level < 0) {
+        residentBase = -1;
+        return;
+    }
+    residentBase = level;
+    params.minZoom = level;
+    params.forceMinLevel = true;
+    params.forceMinLevelHeight = 0.0;
+    // 0 = every node of the min level passes (QuadSamplingController::start applies it
+    // because it is not MAXFLOAT); off-screen ones have importance 0 and still get in.
+    params.minImportanceTop = 0.0;
 }
 
 - (void)setCoordSys:(MaplyCoordinateSystem *)coordSys
@@ -100,7 +124,8 @@ using namespace WhirlyKit;
 - (void)setMinImportance:(double)minImportance
 {
     params.minImportance = minImportance;
-    if (params.minImportanceTop == 0.0)
+    // 0 means "unset" here, except for a resident base level where it is the point.
+    if (params.minImportanceTop == 0.0 && residentBase < 0)
         params.minImportanceTop = minImportance;
 }
 
