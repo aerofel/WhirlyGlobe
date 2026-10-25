@@ -78,6 +78,11 @@
  This is the default interpreter used by the MaplyQuadImageLoader.
  */
 @interface MaplyImageLoaderInterpreter : NSObject<MaplyLoaderInterpreter>
+
+/// Wraps each tile's data in a MaplyImageTile. Declared here (offto fork) so subclasses,
+/// Swift ones included, can override it and call super.
+- (void)dataForTile:(MaplyLoaderReturn * __nonnull)loadReturn loader:(MaplyQuadLoaderBase * __nonnull)loader;
+
 @end
 
 /**
