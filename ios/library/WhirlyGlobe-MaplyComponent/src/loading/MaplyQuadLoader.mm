@@ -275,6 +275,19 @@ using namespace WhirlyKit;
     return samplingLayer->sampleControl.getDisplayControl()->getZoomSlot();
 }
 
+- (float)getZoomLevel
+{
+    const auto vc = _viewC;
+    const int slot = [self getZoomSlot];
+    if (!vc || slot < 0)
+        return -1.0f;
+    const auto renderControl = [vc getRenderControl];
+    if (!renderControl || !renderControl->scene)
+        return -1.0f;
+
+    return renderControl->scene->getZoomSlotValue(slot);
+}
+
 - (NSObject<MaplyLoaderInterpreter> *)getInterpreter
 {
     return loadInterp;

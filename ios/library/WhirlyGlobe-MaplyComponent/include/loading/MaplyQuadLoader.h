@@ -187,6 +187,13 @@ typedef void (__strong ^InitCompletionBlock)(void);
  */
 - (int)getZoomSlot;
 
+/**
+    The level the sampling layer is currently loading, with a fraction for how far the view is
+    toward the next one (e.g. 5.4). -1 before the first evaluation. Safe from any thread.
+    (offto fork)
+ */
+- (float)getZoomLevel;
+
 /// Use a specific tile fetcher rather than the one shared by everyone else
 - (void)setTileFetcher:(NSObject<MaplyTileFetcher> * __nonnull)tileFetcher;
 
