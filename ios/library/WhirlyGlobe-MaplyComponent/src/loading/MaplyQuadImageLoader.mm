@@ -416,6 +416,7 @@ static const int debugColors[MaxDebugColors] = {0x86812D, 0x5EB9C9, 0x2A7E3E, 0x
             break;
     }
     loader->setUsesMipmaps(_generateMipmaps);
+    loader->setPrepareOnWorkers(_prepareTexturesOnWorkers);
     
     for (unsigned int ii=0;ii<loader->getNumFocus();ii++) {
         if (loader->getShaderID(ii) == EmptyIdentity) {

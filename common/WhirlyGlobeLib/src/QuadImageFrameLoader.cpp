@@ -1060,6 +1060,21 @@ void QuadImageFrameLoader::removeTile(PlatformThreadInfo *threadInfo,const QuadT
 }
     
     
+void QuadImageFrameLoader::prepareLoadReturn(QuadLoaderReturn *loadReturn)
+{
+    if (!prepareOnWorkers || !loadReturn)
+        return;
+    for (const auto &image : loadReturn->images) {
+        if (loadReturn->cancel)
+            return;
+        if (Texture *tex = image ? image->buildTexture() : nullptr) {
+            tex->setFormat(texType);
+            tex->setUsesMipmaps(usesMipmaps);
+            tex->prepareData();
+        }
+    }
+}
+
 void QuadImageFrameLoader::mergeLoadedTile(PlatformThreadInfo *threadInfo,QuadLoaderReturn *loadReturn,ChangeSet &changes)
 {
     PipelineTimer timer{statsLock, stats.pipeline.merges, stats.pipeline.mergeSeconds};

@@ -570,6 +570,7 @@ using namespace WhirlyKit;
 
         // Hold on to these till the task runs
         NSObject<MaplyLoaderInterpreter> *theLoadInterp = self->loadInterp;
+        const auto theLoader = loader;
 
         dispatch_async(theQueue, ^{
             if (!self->valid || !self->_viewC)
@@ -582,6 +583,9 @@ using namespace WhirlyKit;
                 // No load interpreter means the fetcher created the objects.  Hopefully.
                 if (theLoadInterp && !loadReturn->loadReturn->cancel)
                     [theLoadInterp dataForTile:loadReturn loader:self];
+                // offto: convert textures (and build mip levels) here, not on the sampling thread
+                if (theLoader && !loadReturn->loadReturn->cancel)
+                    theLoader->prepareLoadReturn(loadReturn->loadReturn.get());
                 
                 // Merge in the results on the sampling layer thread.
                 // If the load was canceled, or we're shutting down and the thread no

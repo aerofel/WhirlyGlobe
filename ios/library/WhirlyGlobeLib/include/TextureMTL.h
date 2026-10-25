@@ -69,8 +69,20 @@ protected:
     // Convert our own raw data into bytes of the appropriate format
     RawDataRef convertData();
     RawDataRef convertData(const RawDataRef &data,int width,int height);
-    /// offto: fill mip levels 1... from texData (RGBA8) on the CPU
-    void uploadMipLevels(int bytesPerPixel);
+    /// offto: the data converted for upload, plus its mip levels (RGBA8 box filter) when
+    /// usesMipmaps and the format allows it
+    std::vector<RawDataRef> buildLevels(bool withMipmaps);
+    bool canBuildMipLevels() const;
+
+public:
+    /// offto: build the upload levels now (on a parse worker); createInRenderer then only
+    /// uploads them, unless the format or mipmap setting changed since
+    virtual void prepareData() override;
+
+protected:
+    std::vector<RawDataRef> preparedLevels;
+    TextureType preparedFormat = TexTypeUnsignedByte;
+    bool preparedMipmaps = false;
 };
 
 typedef std::shared_ptr<TextureMTL> TextureMTLRef;

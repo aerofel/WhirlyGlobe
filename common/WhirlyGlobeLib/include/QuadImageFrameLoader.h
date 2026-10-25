@@ -430,6 +430,17 @@ public:
     /// offto: give tile textures a full mip chain (trilinear minification, no shimmer)
     void setUsesMipmaps(bool use) { usesMipmaps = use; }
     bool getUsesMipmaps() const { return usesMipmaps; }
+
+    /// offto: build and convert textures on the parse workers (prepareLoadReturn) instead of the
+    /// sampling thread. Off by default.
+    void setPrepareOnWorkers(bool on) { prepareOnWorkers = on; }
+    bool getPrepareOnWorkers() const { return prepareOnWorkers; }
+
+    /// offto: on a parse worker, after the interpreter: build each image's texture, give it the
+    /// format and mipmap setting mergeLoadedTile will, and convert it (Texture::prepareData),
+    /// so the sampling thread only uploads. Touches only that load return and settings that
+    /// are fixed once loading starts. No-op unless setPrepareOnWorkers(true).
+    void prepareLoadReturn(QuadLoaderReturn *loadReturn);
     
     /// If we're using border pixels, set the individual texture size and border size
     void setTexSize(int texSize,int borderSize);
@@ -696,6 +707,7 @@ protected:
     QIFDrawStateCache drawStateCache;
     double textureFadeDuration = 0.0;
     bool usesMipmaps = false;
+    bool prepareOnWorkers = false;
     
     bool changesSinceLastFlush;
     

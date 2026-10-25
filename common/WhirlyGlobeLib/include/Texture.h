@@ -89,6 +89,10 @@ public:
 	    
     /// Process the data for display based on the format.
     RawDataRef processData();
+
+    /// offto: convert the data for upload (and build mip levels) ahead of createInRenderer,
+    /// on any thread that owns this texture. Default: nothing, createInRenderer does it.
+    virtual void prepareData() { }
     
     /// Set up from raw PKM (ETC2/EAC) data
     void setPKMData(RawDataRef data);

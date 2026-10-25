@@ -202,6 +202,13 @@ extern NSString * _Nonnull const MaplyQuadImageLoaderFetcherName;
  */
 @property (nonatomic) bool generateMipmaps;
 
+/**
+ offto: convert each tile's texture to its GPU format (and build its mip levels) on the parse
+ workers instead of the single sampling thread, which then only uploads. Default NO.
+ Set before the loader starts.
+ */
+@property (nonatomic) bool prepareTexturesOnWorkers;
+
 @end
 
 /**
