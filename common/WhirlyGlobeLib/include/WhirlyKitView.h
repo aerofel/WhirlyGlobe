@@ -204,6 +204,10 @@ public:
     
     /// Calculate where the eye is in model coordinates
     Point3d eyePos;
+
+    /// offto: where the camera is expected to be shortly (GlobeView look-ahead), or null when it
+    /// is not moving or look-ahead is off. Tile samplers also load what is visible from there.
+    std::shared_ptr<ViewState> lookAhead;
 };
 
 }

@@ -168,6 +168,17 @@ public:
     
     /// Return the current delegate (use for comparison)
     GlobeViewAnimationDelegateRef getDelegate() const { return delegate; }
+
+    /// offto: how far ahead (seconds) to predict the camera for tile loading while it moves.
+    /// 0 = off (default).
+    void setLookAheadTime(double seconds) { lookAheadTime = seconds; }
+    double getLookAheadTime() const { return lookAheadTime; }
+
+    /// offto: a view state for where the camera will be getLookAheadTime() from now if it keeps
+    /// moving the same way (PredictGlobeMotion), built from a copy of this view so every matrix is
+    /// consistent. Records a camera sample on each call (main thread, at most one per few ms).
+    /// Null when look-ahead is off or the camera is not moving.
+    WhirlyKit::ViewStateRef makeLookAheadViewState(WhirlyKit::SceneRenderer *renderer);
     
 protected:
     void privateSetHeightAboveGlobe(double newH,bool updateWatchers);
@@ -183,6 +194,13 @@ protected:
     WhirlyKit::FakeGeocentricDisplayAdapter fakeGeoC;
     /// Animation delegate
     GlobeViewAnimationDelegateRef delegate;
+
+    // offto: look-ahead (see makeLookAheadViewState); [1] is the latest camera sample
+    double lookAheadTime = 0.0;
+    double motionTime[2] = {0.0,0.0};
+    Eigen::Quaterniond motionRot[2];
+    double motionHeight[2] = {0.0,0.0};
+    int motionSamples = 0;
 };
     
 typedef std::shared_ptr<GlobeView> GlobeViewRef;

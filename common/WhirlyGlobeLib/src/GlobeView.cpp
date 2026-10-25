@@ -19,6 +19,7 @@
 #import "Platform.h"
 #import "WhirlyVector.h"
 #import "GlobeView.h"
+#import "GlobeMotion.h"
 #import "WhirlyGeometry.h"
 #import "GlobeMath.h"
 #import "WhirlyKitLog.h"
@@ -440,6 +441,34 @@ void GlobeView::animate()
 ViewStateRef GlobeView::makeViewState(SceneRenderer *renderer)
 {
     return std::make_shared<GlobeViewState>(this,renderer);
+}
+
+ViewStateRef GlobeView::makeLookAheadViewState(SceneRenderer *renderer)
+{
+    if (lookAheadTime <= 0.0)
+        return nullptr;
+
+    // One sample per frame: several layer watchers ask during the same frame
+    const double now = TimeGetCurrent();
+    if (motionSamples == 0 || now - motionTime[1] >= GlobeMotionMinSampleGap) {
+        motionTime[0] = motionTime[1];  motionRot[0] = motionRot[1];  motionHeight[0] = motionHeight[1];
+        motionTime[1] = now;  motionRot[1] = rotQuat;  motionHeight[1] = heightAboveGlobe;
+        motionSamples = std::min(motionSamples + 1,2);
+    }
+    if (motionSamples < 2)
+        return nullptr;
+
+    Eigen::Quaterniond aheadRot;
+    double aheadHeight;
+    if (!PredictGlobeMotion(motionTime[0],motionRot[0],motionHeight[0],
+                            motionTime[1],motionRot[1],motionHeight[1],
+                            lookAheadTime,aheadRot,aheadHeight))
+        return nullptr;
+
+    GlobeView ahead(*this);
+    ahead.setRotQuat(aheadRot,false);
+    ahead.setHeightAboveGlobe(aheadHeight,false);
+    return ahead.makeViewState(renderer);
 }
 
 GlobeViewState::GlobeViewState(WhirlyGlobe::GlobeView *globeView,WhirlyKit::SceneRenderer *renderer)

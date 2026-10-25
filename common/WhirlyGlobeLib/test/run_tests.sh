@@ -12,3 +12,5 @@ c++ $flags "$here/VertexAttributeTests.cpp" "$lib/src/VertexAttribute.cpp" -o "$
 "$out-va"
 c++ $flags "$here/QIFDrawStateCacheTests.cpp" "$lib/src/QIFDrawStateCache.cpp" -o "$out-ds"
 "$out-ds"
+c++ $flags "$here/GlobeMotionTests.cpp" "$lib/src/GlobeMotion.cpp" -o "$out-gm"
+"$out-gm"

@@ -491,6 +491,17 @@ struct WhirlyGlobeViewWrapper : public WhirlyGlobe::GlobeViewAnimationDelegate, 
     globeView->setHeightAboveGlobe(height);
 }
 
+- (double)tileLookAheadTime
+{
+    return globeView ? globeView->getLookAheadTime() : 0.0;
+}
+
+- (void)setTileLookAheadTime:(double)seconds
+{
+    if (globeView)
+        globeView->setLookAheadTime(seconds);
+}
+
 - (CGPoint)globeCenter
 {
     // If it's not set, it's just the center

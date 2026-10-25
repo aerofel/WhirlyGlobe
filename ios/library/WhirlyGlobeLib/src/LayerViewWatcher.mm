@@ -21,6 +21,7 @@
 #import "LayerViewWatcher.h"
 #import "LayerThread.h"
 #import "SceneRenderer.h"
+#import "GlobeView.h"
 
 using namespace Eigen;
 using namespace WhirlyKit;
@@ -198,6 +199,9 @@ public:
     }
 
     ViewStateRef viewState = view->makeViewState(thread.renderer);
+    // offto: where the camera is heading, for tile look-ahead (null when off or not moving)
+    if (auto globeView = dynamic_cast<WhirlyGlobe::GlobeView *>(view))
+        viewState->lookAhead = globeView->makeLookAheadViewState(thread.renderer);
     
     //    lastViewState = viewState;
     @synchronized(self)

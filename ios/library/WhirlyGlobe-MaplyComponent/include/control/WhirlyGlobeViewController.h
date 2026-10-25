@@ -344,6 +344,12 @@
  */
 @property (nonatomic,assign) float height;
 
+/**
+    How far ahead, in seconds, the tile loaders predict the camera while it moves, so tiles are
+    requested before they come on screen (offto fork). 0 = off (the default).
+ */
+@property (nonatomic,assign) double tileLookAheadTime;
+
 /** 
     Tilt in radians.  0 is looking straight down (the default).  PI/2 is looking toward the horizon.
   */

@@ -218,6 +218,29 @@ bool QuadDisplayControllerNew::viewUpdate(PlatformThreadInfo *threadInfo,const V
         return false;
     }
 
+    // offto: also load what will be visible where the camera is heading (GlobeView look-ahead),
+    // at half importance so the tiles on screen now are fetched first. The level and the zoom
+    // slot stay those of the current view.
+    if (singleLevel && inViewState->lookAhead)
+    {
+        QuadTreeNew::NodeSet have;
+        for (const auto &node : newNodes)
+            have.insert(node);
+        viewState = inViewState->lookAhead;
+        std::vector<double> rejectedAhead(maxRejectedImport.size(),0.0);
+        int aheadLevel = -1;
+        QuadTreeNew::ImportantNodeSet aheadNodes;
+        std::tie(aheadLevel,aheadNodes) = calcCoverageVisible(minImportancePerLevel, maxTiles, levelLoads, localKeepMinLevel, rejectedAhead);
+        viewState = inViewState;
+        for (const auto &node : aheadNodes)
+        {
+            if ((int)newNodes.size() >= maxTiles)
+                break;
+            if (have.insert(node).second)
+                newNodes.insert(QuadTreeNew::ImportantNode(node,node.importance * 0.5));
+        }
+    }
+
     double maxRatio = (targetLevel >= maxLevel) ? 0.0 : maxRejectedImport[targetLevel+1];
 
 //    wkLogLevel(Debug,"Selected level %d for %d nodes",targetLevel,(int)newNodes.size());
