@@ -11,6 +11,8 @@ Newest first. Upstream history before the fork lives in git (`v3.5` tag).
   `setInstanceData`, render-target add/remove and resize mark them. Rollback:
   `SceneRenderer::setRebuildOnlyModifiedWorkGroups(false)` /
   `MaplyBaseViewController.renderOnlyChangedDrawGroups = NO`.
+- Codex review: `renderOnlyChangedDrawGroups` switches on the main (rendering) thread;
+  `BasicDrawable::setCalculationData` marks the container modified.
 
 ## 2026-10-25 (Offto tile plan, Phase 4)
 
