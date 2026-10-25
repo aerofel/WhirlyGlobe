@@ -34,6 +34,11 @@ ImageTile_iOS::ImageTile_iOS(SceneRenderer::Type renderType)
 ImageTile_iOS::~ImageTile_iOS()
 {
     imageStuff = nil;
+    // offto: a texture built here but never handed off (clearTexture) is still ours:
+    // e.g. preprocessTexture() on a tile that was cancelled before mergeLoadedTile.
+    // Matches ImageTile_Android.
+    delete tex;
+    tex = NULL;
 }
     
 void ImageTile_iOS::clearTexture()

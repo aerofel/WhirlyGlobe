@@ -340,6 +340,9 @@ SimpleIdentity SphericalChunkManager::addChunks(const std::vector<SphericalChunk
         {
             // Let's just deal with square images
             newTex = chunk.loadImage->buildTexture();
+            // offto: the AddTextureReq below owns it now (same contract as
+            // QuadImageFrameLoader::mergeLoadedTile), so the image tile must not delete it.
+            chunk.loadImage->clearTexture();
         }
         if (newTex)
         {
