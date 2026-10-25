@@ -91,6 +91,9 @@ void QIFFrameAsset::setupFetch(QuadImageFrameLoader *loader)
 
 void QIFFrameAsset::clear(PlatformThreadInfo *threadInfo,QuadImageFrameLoader *loader,QIFBatchOps *batchOps,ChangeSet &changes)
 {
+    // Removing a tile cancels its in-flight fetches here, not through cancelFetch
+    if (state == Loading && loader)
+        loader->noteFetchCancelled();
     state = Empty;
 
     // Drop the reference to the loader return, its cancel flag can no longer be set.
