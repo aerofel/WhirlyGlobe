@@ -76,7 +76,11 @@ public:
     
     /// If non-zero we'll only force min level loading above this height
     double forceMinLevelHeight;
-    
+
+    /// How often (seconds) the quad tree re-evaluates which tiles to load
+    /// while the view is moving.  0.0 = use the engine default (0.1s).
+    double viewUpdatePeriod;
+
     /// If set, we'll try to load a single level
     bool singleLevel;
 

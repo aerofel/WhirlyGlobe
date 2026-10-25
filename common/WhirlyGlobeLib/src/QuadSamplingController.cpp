@@ -55,6 +55,8 @@ void QuadSamplingController::start(const SamplingParams &inParams,Scene *inScene
     displayControl->setMinImportancePerLevel(importance);
     displayControl->setMBRScaling(params.boundsScale);
     displayControl->setMaxTiles(params.maxTiles);
+    if (params.viewUpdatePeriod > 0.0)
+        displayControl->setViewUpdatePeriod(params.viewUpdatePeriod);
 
     valid = true;
 }

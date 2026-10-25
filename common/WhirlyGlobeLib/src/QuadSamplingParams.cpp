@@ -32,6 +32,7 @@ SamplingParams::SamplingParams()
     singleLevel(false),
     forceMinLevel(true),
     forceMinLevelHeight(0.0),
+    viewUpdatePeriod(0.0),
     generateGeom(true)
 {
 }
@@ -56,6 +57,7 @@ bool SamplingParams::operator == (const SamplingParams &that) const
         boundsScale == that.boundsScale &&
         forceMinLevel == that.forceMinLevel &&
         forceMinLevelHeight == that.forceMinLevelHeight &&
+        viewUpdatePeriod == that.viewUpdatePeriod &&
         clipBounds == that.clipBounds &&
         generateGeom == that.generateGeom &&
         levelLoads == that.levelLoads &&

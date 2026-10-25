@@ -169,6 +169,16 @@ using namespace WhirlyKit;
     params.singleLevel = singleLevel;
 }
 
+- (double)viewUpdatePeriod
+{
+    return params.viewUpdatePeriod;
+}
+
+- (void)setViewUpdatePeriod:(double)viewUpdatePeriod
+{
+    params.viewUpdatePeriod = viewUpdatePeriod;
+}
+
 - (void)setForceMinLevel:(bool)forceMinLevel
 {
     params.forceMinLevel = forceMinLevel;

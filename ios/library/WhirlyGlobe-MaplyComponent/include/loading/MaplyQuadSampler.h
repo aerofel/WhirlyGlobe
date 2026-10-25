@@ -79,6 +79,11 @@
 /// If set, we'll try to load a single level
 @property (nonatomic) bool singleLevel;
 
+/// How often the quad tree re-evaluates which tiles to load while the view
+/// is moving, in seconds.  0.0 = use the engine default (0.1s).
+/// Smaller values sharpen raster basemaps during motion at some CPU cost.
+@property (nonatomic) double viewUpdatePeriod;
+
 /// If set, the tiles are clipped to this boundary
 @property (nonatomic) MaplyBoundingBoxD clipBounds;
 @property (nonatomic,readonly) bool hasClipBounds;
