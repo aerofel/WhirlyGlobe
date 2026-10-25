@@ -228,7 +228,15 @@ void BasicDrawableInstanceGLES::draw(RendererFrameInfoGLES *frameInfo,Scene *inS
 
         // Figure out if we're fading in or out
         float fade = 1.0;
-        // Note: Time based fade isn't represented in the instance.  Probably should be.
+        // offto: the instance's own time fade (tile crossfade); same ramp as BasicDrawableGLES
+        if (hasOwnFade())
+        {
+            const TimeInterval now = frameInfo->currentTime;
+            if (fadeDown < fadeUp)
+                fade = (now < fadeDown) ? 0.0f : (now > fadeUp) ? 1.0f : (float)((now - fadeDown)/(fadeUp - fadeDown));
+            else
+                fade = (now < fadeUp) ? 1.0f : (now > fadeDown) ? 0.0f : (float)(1.0 - (now - fadeUp)/(fadeDown - fadeUp));
+        }
 
         // Deal with the range based fade
         if (frameInfo->heightAboveSurface > 0.0)

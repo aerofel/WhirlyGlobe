@@ -45,6 +45,8 @@ struct QIFDrawState
     bool hasUniforms = false;
     float t = 0.0f;
     unsigned char color[4] = {0,0,0,0};
+    // Allowed to fade in when its own texture first replaces a fallback (crossfade)
+    bool fadeIn = false;
 };
 
 /**
@@ -66,6 +68,8 @@ public:
         virtual void onOff(SimpleIdentity drawID,bool on) = 0;
         virtual void texture(SimpleIdentity drawID,int which,const QIFDrawTex &tex) = 0;
         virtual void uniforms(SimpleIdentity drawID,float t,const unsigned char color[4]) = 0;
+        /// Fade the drawable in: its own texture just replaced a fallback (or nothing)
+        virtual void fadeIn(SimpleIdentity drawID) = 0;
     };
 
     /// Start an update; drawables not passed to apply() before endPass() are forgotten.

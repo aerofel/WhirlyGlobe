@@ -434,8 +434,9 @@ bool BasicDrawableInstanceMTL::preProcess(SceneRendererMTL *sceneRender,
             uni.hasExp = hasExp;
             // TODO: Put these in the instance as well
             double baseTime = scene->getBaseTime();
-            uni.fadeUp = basicDraw->fadeUp-baseTime;
-            uni.fadeDown = basicDraw->fadeDown-baseTime;
+            // offto: the instance's own fade (tile crossfade) wins over the master's
+            uni.fadeUp = (hasOwnFade() ? fadeUp : basicDraw->fadeUp) - baseTime;
+            uni.fadeDown = (hasOwnFade() ? fadeDown : basicDraw->fadeDown) - baseTime;
             uni.minVisible = basicDraw->minVisible;
             uni.maxVisible = basicDraw->maxVisible;
             uni.minVisibleFadeBand = basicDraw->minVisibleFadeBand;

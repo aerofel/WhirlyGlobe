@@ -26,7 +26,13 @@ namespace
 // offto: turns QIFDrawStateCache decisions into scene change requests
 struct ChangeSetEmitter : WhirlyKit::QIFDrawStateCache::Emitter
 {
-    explicit ChangeSetEmitter(WhirlyKit::ChangeSet &changes) : changes(changes) { }
+    ChangeSetEmitter(WhirlyKit::ChangeSet &changes,double now,double fadeDuration) :
+        changes(changes), now(now), fadeDuration(fadeDuration) { }
+    void fadeIn(WhirlyKit::SimpleIdentity drawID) override
+    {
+        if (fadeDuration > 0.0)
+            changes.push_back(new WhirlyKit::FadeChangeRequest(drawID,now + fadeDuration,now));
+    }
     void onOff(WhirlyKit::SimpleIdentity drawID,bool on) override
     {
         changes.push_back(new WhirlyKit::OnOffChangeRequest(drawID,on));
@@ -47,6 +53,7 @@ struct ChangeSetEmitter : WhirlyKit::QIFDrawStateCache::Emitter
         changes.push_back(new WhirlyKit::DrawUniformsChangeRequest(drawID,attrs));
     }
     WhirlyKit::ChangeSet &changes;
+    double now, fadeDuration;
 };
 
 // offto: adds the duration of a scope to a pipeline counter, under the stats lock
@@ -653,7 +660,7 @@ void QIFRenderState::updateScene(Scene *scene,
     // Without a cache every request is sent, as the original code did
     QIFDrawStateCache noCache;
     QIFDrawStateCache &cache = drawCache ? *drawCache : noCache;
-    ChangeSetEmitter emitter(changes);
+    ChangeSetEmitter emitter(changes,now,drawCache ? fadeDuration : 0.0);
     cache.beginPass();
 
     // We allow one or more points in the time slices where we're rendering
@@ -753,6 +760,7 @@ void QIFRenderState::updateScene(Scene *scene,
                 want.hasUniforms = true;
                 want.t = (numFrames > 1) ? (float)(curFrame-activeFrames[0]) : 0.0f;
                 memcpy(want.color,color4,4);
+                want.fadeIn = fadeDuration > 0.0 && tileID.level > fadeMinLevel;
             } else {
                 // Just turn the geometry off if we've got nothing
                 want = QIFDrawState();
@@ -1290,6 +1298,8 @@ void QuadImageFrameLoader::buildRenderState(ChangeSet &changes)
     QIFRenderState newRenderState(numFocus,numFrames);
     newRenderState.texSize = texSize;
     newRenderState.borderSize = borderSize;
+    newRenderState.fadeDuration = textureFadeDuration;
+    newRenderState.fadeMinLevel = params.minZoom;
     for (int frameID=0;frameID<numFrames;frameID++)
         newRenderState.topTilesLoaded[frameID] = true;
         

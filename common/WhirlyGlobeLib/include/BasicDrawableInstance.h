@@ -128,6 +128,13 @@ public:
 
     /// Set the uniforms to be applied to the geometry
     virtual void setUniforms(const SingleVertexAttributeSet &uniforms);
+
+    /// offto: time-based fade of this instance (same meaning as BasicDrawable::setFade: fadeDown <
+    /// fadeUp fades in between the two times). Used for tile crossfades.
+    virtual void setFade(TimeInterval inFadeDown,TimeInterval inFadeUp);
+    bool hasOwnFade() const { return fadeUp != fadeDown; }
+    TimeInterval getFadeUp() const { return fadeUp; }
+    TimeInterval getFadeDown() const { return fadeDown; }
     
     /// Set a block of uniforms (Metal only, at the moment)
     virtual void setUniBlock(const BasicDrawable::UniformBlock &uniBlock);
@@ -220,6 +227,7 @@ protected:
     bool moving;
     // Uniforms to apply to shader
     SingleVertexAttributeSet uniforms;
+    TimeInterval fadeUp = 0.0, fadeDown = 0.0;     // offto: own fade (see setFade)
     // Uniforms to be passed into a shader (just Metal for now)
     std::vector<BasicDrawable::UniformBlock> uniBlocks;
     SimpleIdentity renderTargetID;

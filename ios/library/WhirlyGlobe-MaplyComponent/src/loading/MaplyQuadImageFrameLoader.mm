@@ -257,6 +257,17 @@ NSString * const MaplyQuadImageLoaderFetcherName = @"QuadImageLoader";
     return [loader->frameInfos count];
 }
 
+- (double)textureFadeDuration
+{
+    return loader ? loader->getTextureFadeDuration() : 0.0;
+}
+
+- (void)setTextureFadeDuration:(double)seconds
+{
+    if (loader)
+        loader->setTextureFadeDuration(seconds);
+}
+
 - (MaplyQuadImageFrameLoaderStats * __nonnull)getFrameStats
 {
     QuadImageFrameLoader::Stats stats = loader->getStats();

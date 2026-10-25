@@ -21,6 +21,8 @@ struct Recorder : QIFDrawStateCache::Emitter
     { sent.push_back(std::to_string(id) + " tex" + std::to_string(which) + "=" + std::to_string(tex.texID) + " rel" + std::to_string(tex.relLevel)); }
     void uniforms(SimpleIdentity id,float t,const unsigned char color[4]) override
     { sent.push_back(std::to_string(id) + " uni t=" + std::to_string(t) + " a=" + std::to_string(color[3])); }
+    void fadeIn(SimpleIdentity id) override { sent.push_back(std::to_string(id) + " fade"); fades++; }
+    int fades = 0;
 };
 
 static QIFDrawState onWith(SimpleIdentity day,SimpleIdentity night,int rel = 0,float t = 0.5f)
@@ -110,6 +112,39 @@ int main()
         r.sent.clear();
         cache.beginPass(); cache.apply(7, onWith(100, 101, 0, 0.75f), true, r); cache.endPass();
         CHECK(r.sent.size() == 1 && r.sent[0].find("uni") != std::string::npos);
+    }
+
+    // Crossfade: only when slot 0 goes from a fallback (ancestor, relLevel > 0) or nothing to the
+    // tile's own texture (relLevel 0), and only when the state allows it
+    {
+        QIFDrawStateCache cache; Recorder r;
+        auto fallback = onWith(100, 101, 2); fallback.fadeIn = true;
+        auto own = onWith(300, 301, 0); own.fadeIn = true;
+        cache.beginPass(); cache.apply(7, fallback, true, r); cache.endPass();
+        CHECK(r.fades == 0);                       // a fallback never fades
+        cache.beginPass(); cache.apply(7, own, true, r); cache.endPass();
+        CHECK(r.fades == 1);                       // own texture arrives: fade
+        cache.beginPass(); cache.apply(7, own, true, r); cache.endPass();
+        CHECK(r.fades == 1);                       // unchanged: no new fade
+        auto reloaded = onWith(400, 401, 0); reloaded.fadeIn = true;
+        cache.beginPass(); cache.apply(7, reloaded, true, r); cache.endPass();
+        CHECK(r.fades == 1);                       // own -> own (reload): no fade
+    }
+    {
+        QIFDrawStateCache cache; Recorder r;
+        auto own = onWith(300, 301, 0); own.fadeIn = false;   // e.g. the base level
+        cache.beginPass(); cache.apply(7, onWith(100, 101, 1), true, r); cache.endPass();
+        cache.beginPass(); cache.apply(7, own, true, r); cache.endPass();
+        CHECK(r.fades == 0);
+    }
+    {
+        // First sight of a drawable already showing its own texture fades too (a new tile)
+        QIFDrawStateCache cache; Recorder r;
+        auto own = onWith(300, 301, 0); own.fadeIn = true;
+        cache.beginPass(); cache.apply(9, own, true, r); cache.endPass();
+        CHECK(r.fades == 1);
+        // The fade request comes after the texture it reveals
+        CHECK(r.sent.back() == "9 fade" || r.sent[r.sent.size()-2] == "9 fade");
     }
 
     if (failures)

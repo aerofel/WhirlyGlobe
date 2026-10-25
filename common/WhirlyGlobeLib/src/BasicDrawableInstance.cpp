@@ -184,8 +184,22 @@ bool BasicDrawableInstance::getWriteZbuffer() const
     return writeZBuffer;
 }
 
+void BasicDrawableInstance::setFade(TimeInterval inFadeDown,TimeInterval inFadeUp)
+{
+    if (fadeUp == inFadeUp && fadeDown == inFadeDown)
+        return;
+    fadeUp = inFadeUp;  fadeDown = inFadeDown;
+    // The fade times are in the per-drawable uniforms
+    setValuesChanged();
+}
+
 void BasicDrawableInstance::updateRenderer(WhirlyKit::SceneRenderer *renderer)
 {
+    // Keep drawing until our own fade is done
+    if (hasOwnFade()) {
+        renderer->setRenderUntil(fadeUp);
+        renderer->setRenderUntil(fadeDown);
+    }
     if (moving)
     {
         // Motion requires continuous rendering

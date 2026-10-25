@@ -203,6 +203,10 @@ typedef NS_ENUM(NSInteger, MaplyLoadFrameMode) {
   */
 - (MaplyQuadImageFrameLoaderStats * __nonnull)getFrameStats;
 
+/// Fade a tile in over this many seconds when its own texture replaces the stretched ancestor it
+/// was showing (offto fork). The always-resident base level never fades. 0 = off (default).
+@property (nonatomic,assign) double textureFadeDuration;
+
 /**
    Change the tile sources and reload all the data.
    <br>

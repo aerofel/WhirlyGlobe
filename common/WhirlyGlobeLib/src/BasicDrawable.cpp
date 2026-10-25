@@ -636,6 +636,11 @@ void FadeChangeRequest::execute2(Scene *scene,SceneRenderer *renderer,DrawableRe
     {
         basicDrawable->setFade(fadeDown, fadeUp);
     }
+    else if (const auto basicDrawInst = dynamic_cast<BasicDrawableInstance*>(draw.get()))
+    {
+        // offto: instances (e.g. quad loader tiles) have their own fade now
+        basicDrawInst->setFade(fadeDown, fadeUp);
+    }
 
     // And let the renderer know
     renderer->setRenderUntil(fadeDown);

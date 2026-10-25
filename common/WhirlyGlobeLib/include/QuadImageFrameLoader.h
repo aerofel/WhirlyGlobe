@@ -306,6 +306,11 @@ public:
     std::map<QuadTreeNew::Node,QIFTileStateRef> tiles;
 
     int texSize,borderSize;
+
+    // offto: crossfade a tile when its own texture replaces a fallback (0 = off); never at or
+    // below fadeMinLevel (the always-resident base would fade in from nothing)
+    double fadeDuration = 0.0;
+    int fadeMinLevel = 0;
     
     // Number of tiles loaded for each frame
     std::vector<int> tilesLoaded;
@@ -563,6 +568,11 @@ public:
     /// Return the stats (thread safe)
     Stats getStats() const;
 
+    /// offto: fade a tile in over this many seconds when its own texture replaces the stretched
+    /// ancestor it was showing (0 = off, the default)
+    void setTextureFadeDuration(double seconds) { textureFadeDuration = seconds; }
+    double getTextureFadeDuration() const { return textureFadeDuration; }
+
     /// offto: a frame fetch started / was cancelled while loading (any thread)
     void noteFetchRequested();
     void noteFetchCancelled();
@@ -680,6 +690,7 @@ protected:
 
     // offto: what each tile drawable last received from updateScene (render thread only)
     QIFDrawStateCache drawStateCache;
+    double textureFadeDuration = 0.0;
     
     bool changesSinceLastFlush;
     

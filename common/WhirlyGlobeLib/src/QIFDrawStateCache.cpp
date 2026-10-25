@@ -44,6 +44,11 @@ void QIFDrawStateCache::apply(SimpleIdentity drawID,const QIFDrawState &want,boo
         if (want.hasUniforms &&
             (!had || !had->hasUniforms || had->t != want.t || memcmp(had->color,want.color,4) != 0))
             emit.uniforms(drawID,want.t,want.color);
+        // Crossfade: slot 0 now shows the tile's own texture, and before it showed an ancestor's
+        // (relLevel > 0), nothing, or the drawable was off or new. Not on own -> own (reload).
+        const auto ownTex = [](const QIFDrawTex &tex) { return tex.texID != EmptyIdentity && tex.relLevel == 0; };
+        if (want.fadeIn && ownTex(want.tex[0]) && (!had || !had->on || !ownTex(had->tex[0])))
+            emit.fadeIn(drawID);
     } else {
         if (!had || had->on)
             emit.onOff(drawID,false);
