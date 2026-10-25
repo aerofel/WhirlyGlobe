@@ -2,6 +2,19 @@
 
 Newest first. Upstream history before the fork lives in git (`v3.5` tag).
 
+## 2026-10-25 (Offto tile plan, Phase 2)
+
+### Added
+- `QuadImageFrameLoader::Stats::pipeline`: cumulative counters for tile merges, render-state
+  builds, scene updates and their change requests, and the last update's fallback tiles.
+- `QIFDrawStateCache`: remembers what each tile drawable last received.
+- Host tests: `VertexAttributeTests`, `QIFDrawStateCacheTests`.
+
+### Changed
+- `QIFRenderState::updateScene` sends only the textures, on/off and uniforms that changed
+  (same end state). A value is only remembered once the drawable exists in the scene.
+- `BasicDrawableInstance::setUniforms` does nothing when the values are equal (no re-encode).
+
 ## 2026-10-25 (Offto tile plan, Phase 1)
 
 ### Added

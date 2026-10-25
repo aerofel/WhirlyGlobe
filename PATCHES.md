@@ -25,6 +25,9 @@ Ownership: the iOS Offto instance edits `common/` and `ios/`. The Android Offto 
 | 20a1c0583 | ios | `-[MaplyQuadLoaderBase getZoomLevel]` | The level (with fraction) the sampler is loading; Offto logs it to tune level selection |
 | fef2808ae | ios | `MaplyImageLoaderInterpreter` declares `dataForTile:loader:` | So Swift subclasses can override it and call super (Offto decodes tiles on the parse workers) |
 | 3ddfb19cd | ios | `MaplySamplingParams.residentBaseLevel` | `minZoom` silently refuses > 1 and `setMinImportance:` overwrites a 0 `minImportanceTop`; this sets the base level, `forceMinLevel` and the 0 threshold together. Android Java/JNI: **not yet** (handoff) |
+| 041971fad | common + ios | `QuadImageFrameLoader::Stats::pipeline` counters (merges, render-state builds, scene updates with their change requests and time, fallback tiles and worst level gap); `MaplyQuadImageFrameLoaderStats` fields | Measure where time goes (Offto `BasemapPerfProbe`). Java/JNI: **not yet** (handoff) |
+| 42851addb | common | `BasicDrawableInstance::setUniforms` skips equal values (`SameAttributeValues`) | Every render-state update re-encoded every tile drawable (on Metal a new argument buffer): 76 % of main-thread time while tiles loaded |
+| 13fbae9cb | common | `QIFRenderState::updateScene` sends only what changed (`QIFDrawStateCache`) | ~3 400 change requests per update (466 000 in a 10 s pan) → 1 800 for the whole pan. New `QIFDrawStateCache.cpp` (in the Android CMake list) |
 
 Contract to keep: whoever takes a texture from `ImageTile::buildTexture()` and hands it to an
 `AddTextureReq` must call `clearTexture()`. An `ImageTile` deletes any texture it still holds.
