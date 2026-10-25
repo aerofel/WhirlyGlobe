@@ -184,6 +184,10 @@ public:
 
 typedef std::set<SingleVertexAttribute> SingleVertexAttributeSet;
 
+/// True when both sets hold the same attributes (name, slot, type) with the same values.
+/// offto: lets setUniforms() skip a no-op update, which otherwise re-encodes the drawable.
+bool SameAttributeValues(const SingleVertexAttributeSet &a,const SingleVertexAttributeSet &b);
+
 /// Generate a vertex attribute info set from a vertex attribute set (e.g. strip out the values)
 void VertexAttributeSetConvert(const SingleVertexAttributeSet &attrSet,SingleVertexAttributeInfoSet &infoSet);
 

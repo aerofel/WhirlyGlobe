@@ -5,8 +5,8 @@ set -e
 here="$(cd "$(dirname "$0")" && pwd)"
 lib="$here/.."
 out="${TMPDIR:-/tmp}/wg_core_tests"
-c++ -std=c++17 -O1 -w -x c++ \
-    -I"$lib/include" -I"$lib/../local_libs/eigen" \
-    "$here/QuadTreeNewTests.cpp" "$lib/src/QuadTreeNew.cpp" "$lib/src/WhirlyVector.cpp" \
-    -o "$out"
+flags="-std=c++17 -O1 -w -x c++ -I$lib/include -I$lib/../local_libs/eigen"
+c++ $flags "$here/QuadTreeNewTests.cpp" "$lib/src/QuadTreeNew.cpp" "$lib/src/WhirlyVector.cpp" -o "$out"
 "$out"
+c++ $flags "$here/VertexAttributeTests.cpp" "$lib/src/VertexAttribute.cpp" -o "$out-va"
+"$out-va"

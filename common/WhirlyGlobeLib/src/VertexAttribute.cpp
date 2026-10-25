@@ -19,6 +19,7 @@
  */
 
 #import "VertexAttribute.h"
+#import <cstring>
 
 using namespace Eigen;
 
@@ -319,6 +320,21 @@ SingleVertexAttributeInfo::SingleVertexAttributeInfo()
 SingleVertexAttributeInfo::SingleVertexAttributeInfo(StringIdentity nameID,int slot,BDAttributeDataType type)
 : nameID(nameID), type(type), slot(slot)
 {
+}
+
+bool SameAttributeValues(const SingleVertexAttributeSet &a,const SingleVertexAttributeSet &b)
+{
+    if (a.size() != b.size())
+        return false;
+    for (auto ia = a.begin(), ib = b.begin(); ia != a.end(); ++ia, ++ib)
+    {
+        if (ia->nameID != ib->nameID || ia->slot != ib->slot || ia->type != ib->type)
+            return false;
+        // Only the bytes this type uses: the rest of the union is not initialised
+        if (memcmp(&ia->data, &ib->data, ia->size()) != 0)
+            return false;
+    }
+    return true;
 }
 
 int SingleVertexAttributeInfo::size() const

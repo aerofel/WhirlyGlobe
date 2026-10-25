@@ -286,6 +286,12 @@ void BasicDrawableInstance::setStartTime(TimeInterval inStartTime)
 
 void BasicDrawableInstance::setUniforms(const SingleVertexAttributeSet &newUniforms)
 {
+    // offto: skip no-op updates. QuadImageFrameLoader sends every tile the same uniforms on
+    // every render-state update, and each one used to re-encode the drawable (on Metal: a new
+    // argument buffer) — most of the main thread while tiles load. Like setTexId().
+    if (SameAttributeValues(uniforms, newUniforms))
+        return;
+
     uniforms = newUniforms;
     
     setValuesChanged();
