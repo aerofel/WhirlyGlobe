@@ -21,6 +21,8 @@
 #import "QuadSamplingParams.h"
 #import "QuadDisplayControllerNew.h"
 #import "QuadTileBuilder.h"
+#import "ScreenImportance.h"
+#import <unordered_map>
 
 namespace WhirlyKit
 {
@@ -142,6 +144,12 @@ protected:
     
     bool builderStarted = false;
     bool valid = true;
+
+    /// offto: a tile's DisplaySolid depends only on the tile (not the view), but it was built
+    /// again, with its coordinate conversions, for every node on every evaluation (~28 % of the
+    /// sampling thread on an iPad). Kept per node here; sampling-layer thread only.
+    std::unordered_map<int64_t,DisplaySolidRef> displaySolids;
+    static constexpr size_t MaxDisplaySolids = 4096;   // a few MB at most (~1-2 KB each)
 };
     
 }

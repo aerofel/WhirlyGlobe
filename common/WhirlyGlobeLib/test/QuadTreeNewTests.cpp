@@ -7,6 +7,7 @@
 #import "QuadTreeNew.h"
 #import <cstdio>
 #import <cmath>
+#import <set>
 
 using namespace WhirlyKit;
 
@@ -23,12 +24,17 @@ public:
 
     double importance(const Node &node) override
     {
+        calls++;
+        seen.insert(node);
         const double left = (double)node.x / (double)(1 << node.level);
         if (left >= 0.5)
             return 0.0;
         return 1e8 / std::pow(4.0, node.level);
     }
     bool visible(const Node &node) override { return importance(node) > 0.0; }
+
+    int calls = 0;
+    std::set<Node> seen;
 };
 
 static std::vector<double> importances(int minLevel, int maxLevel, double minImportanceTop, double minImportance)
@@ -127,6 +133,27 @@ static void testLevelLoadsStayAtOrAboveMinLevel()
     CHECK((int)nodes.size() == 64);
 }
 
+// Each node's importance is computed once per evaluation (it used to be computed again in
+// evalNodeVisible, i.e. twice for every node), and the result is unchanged.
+static void testImportanceComputedOncePerNode()
+{
+    HalfScreenTree tree(3, 7);
+    std::vector<double> rejected(8, 0.0);
+    int level;
+    QuadTreeNew::ImportantNodeSet nodes;
+    std::tie(level, nodes) = tree.calcCoverageVisible(importances(3, 7, 0.0, 176.0 * 176.0), 1024, {-1}, true, rejected);
+    const int firstCalls = tree.calls;
+
+    CHECK(firstCalls == (int)tree.seen.size());
+    CHECK(level == 5 && countLevel(nodes, 3) == 64 && countLevel(nodes, 5) == 512);
+
+    // A second evaluation starts fresh (the view may have moved)
+    tree.calls = 0;
+    tree.seen.clear();
+    std::tie(level, nodes) = tree.calcCoverageVisible(importances(3, 7, 0.0, 176.0 * 176.0), 1024, {-1}, true, rejected);
+    CHECK(tree.calls == firstCalls);
+}
+
 int main()
 {
     testWholeMinLevelResident();
@@ -134,6 +161,7 @@ int main()
     testMinLevelZeroUnchanged();
     testMaxNodesRespected();
     testLevelLoadsStayAtOrAboveMinLevel();
+    testImportanceComputedOncePerNode();
     if (failures)
     {
         std::fprintf(stderr, "%d check(s) failed\n", failures);

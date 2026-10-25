@@ -161,8 +161,12 @@ double QuadSamplingController::importanceForTile(const QuadTreeIdentifier &ident
         return MAXFLOAT;
     }
     
+    // Reuse the tile's display solid (built on first use; dropped wholesale past the cap)
+    if (displaySolids.size() > MaxDisplaySolids)
+        displaySolids.clear();
+    DisplaySolidRef &dispSolid = displaySolids[ident.NodeNumber()];
     return ScreenImportance(viewState.get(), frameSize, viewState->eyeVec, 1,
-                 params.coordSys.get(), coordAdapter, mbr, ident);
+                 params.coordSys.get(), coordAdapter, mbr, ident, dispSolid);
 }
 
 void QuadSamplingController::newViewState(ViewStateRef viewState)

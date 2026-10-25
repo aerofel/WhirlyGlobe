@@ -100,9 +100,21 @@ QuadTreeNew::QuadTreeNew(const MbrD &mbr,int minLevel,int maxLevel)
 {
 }
 
+double QuadTreeNew::cachedImportance(const Node &node)
+{
+    const int64_t key = QuadTreeIdentifier::NodeNumber(node.x,node.y,node.level);
+    const auto it = importanceThisPass.find(key);
+    if (it != importanceThisPass.end())
+        return it->second;
+    const double import = importance(node);
+    importanceThisPass.emplace(key,import);
+    return import;
+}
+
 QuadTreeNew::ImportantNodeSet QuadTreeNew::calcCoverageImportance(const std::vector<double> &minImportance,int maxNodes,bool siblingNodes,std::vector<double> &maxRejectedImport)
 {
     ImportantNodeSet sortedNodes;
+    importanceThisPass.clear();
 
     // Start at the lowest level and work our way to higher resolution
     const int numX = 1<<minLevel;
@@ -160,7 +172,7 @@ void QuadTreeNew::evalNodeImportance(ImportantNode &node,const std::vector<doubl
         return;
     }
 
-    node.importance = (node.level >= minLevel) ? importance(node) : 0;
+    node.importance = (node.level >= minLevel) ? cachedImportance(node) : 0;
 
     //wkLogLevel(Verbose,"tree %llx node %d:(%d,%d) importance=%f",this,node.level,node.x,node.y,node.importance);
     assert(node.level < minImportance.size() && node.level < maxRejectedImport.size());
@@ -206,7 +218,7 @@ bool QuadTreeNew::evalNodeVisible(ImportantNode node, const std::vector<double> 
     }
 
     // These are used for sorting elsewhere, so let's keep 'em around
-    node.importance = importance(node);
+    node.importance = cachedImportance(node);
 
     if (node.level == minLevel && node.importance < minImportance[node.level])
         return true;
@@ -248,6 +260,8 @@ std::tuple<int,QuadTreeNew::ImportantNodeSet> QuadTreeNew::calcCoverageVisible(
         bool keepMinLevel,std::vector<double> &maxRejectedImport)
 {
     ImportantNodeSet sortedNodes;
+    // A new evaluation: the view may have moved since the last one
+    importanceThisPass.clear();
 
     // Start at the lowest level and work our way to higher resolution
     ImportantNode node(0,0,0);

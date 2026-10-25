@@ -20,6 +20,7 @@
 
 #import "WhirlyVector.h"
 #import <set>
+#import <unordered_map>
 
 namespace WhirlyKit
 {
@@ -164,6 +165,11 @@ public:
 
 protected:
     volatile bool shutdown = false;
+
+    /// offto: importance of each node within one evaluation, so evalNodeVisible does not
+    /// compute again what evalNodeImportance just computed (the view is the same)
+    double cachedImportance(const Node &node);
+    std::unordered_map<int64_t,double> importanceThisPass;
 };
 
 }
