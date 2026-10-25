@@ -2,6 +2,14 @@
 
 Newest first. Upstream history before the fork lives in git (`v3.5` tag).
 
+## 2026-10-25 (Offto tile plan, Phase 4)
+
+### Added
+- `QuadImageFrameLoader::setImagesPerTile` / `MaplyQuadImageLoaderBase.imagesPerTile` (1-2,
+  default 1): one frame may carry two images (e.g. day + night from one fetch), shown in texture
+  slots 0 and 1. Slot choice extracted into `QIFTileTextures` (host-tested); two-frame loaders
+  bind exactly as before.
+
 ## 2026-10-25 (Offto tile plan, Phase 3)
 
 ### Added
