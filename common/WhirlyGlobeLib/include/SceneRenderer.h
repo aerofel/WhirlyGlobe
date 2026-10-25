@@ -284,6 +284,7 @@ public:
 
     /// offto: rebuild a container's draw groups only when it was modified (default). Off = the
     /// v3.5 behaviour, every non-empty container rebuilt every frame (Metal indirect commands).
+    /// Call on the rendering thread (the main thread on iOS).
     void setRebuildOnlyModifiedWorkGroups(bool on) { rebuildOnlyModified = on; markWorkGroupsModified(); }
     bool getRebuildOnlyModifiedWorkGroups() const { return rebuildOnlyModified; }
         

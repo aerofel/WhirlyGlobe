@@ -481,6 +481,7 @@ void BasicDrawable::setCalculationData(int numEntries,const std::vector<RawDataR
 {
     calcDataEntries = numEntries;
     calcData = data;
+    setValuesChanged();     // offto: encoded calculation commands depend on it
 }
     
 void BasicDrawable::addTweaker(const DrawableTweakerRef &tweak)

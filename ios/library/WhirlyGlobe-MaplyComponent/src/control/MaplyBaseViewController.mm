@@ -467,6 +467,12 @@ static const float PerfOutputDelay = 15.0;
 
 - (void)setRenderOnlyChangedDrawGroups:(bool)on
 {
+    // The Metal view renders on the main thread (display link), which reads and clears the
+    // containers' `modified` flags: change the mode there too, never concurrently.
+    if (![NSThread isMainThread]) {
+        dispatch_async(dispatch_get_main_queue(), ^{ [self setRenderOnlyChangedDrawGroups:on]; });
+        return;
+    }
     if (renderControl && renderControl->sceneRenderer)
         renderControl->sceneRenderer->setRebuildOnlyModifiedWorkGroups(on);
 }
