@@ -2,6 +2,21 @@
 
 Newest first. Upstream history before the fork lives in git (`v3.5` tag).
 
+## 2026-10-26 (Android: tile plan Java/JNI, tile pipeline hand-offs)
+
+### Added
+- Android Java/JNI for the tile plan: `SamplingParams.setViewUpdatePeriod`,
+  `setResidentBaseLevel`; `QuadImageFrameLoader.Stats.pipeline`, `setTextureFadeDuration`,
+  `setUsesMipmaps`, `setImagesPerTile`. `LayerThread` throttles view updates to the smallest
+  `minTime` of its watchers.
+
+### Fixed
+- `LayerThread` caches its looper: `getLooper()` waited on the lock the scene merge holds.
+- `SimpleTileFetcher`: one `updateLoading` chain (the `scheduled` flag was never set); parse
+  slots are freed and refilled on the worker, every free slot at once.
+- `ImageLoaderInterpreter` decodes into a reused bitmap per worker thread (no 256 KB
+  allocation per tile). S20 scripted pinch: median burst 249 → 66-100 ms.
+
 ## 2026-10-25 (renderer: draw groups)
 
 ### Fixed
