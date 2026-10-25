@@ -19,8 +19,9 @@
 namespace WhirlyKit
 {
 
-/// Next mipmap level of an RGBA8 image: half the size (odd sizes round down, minimum 1),
-/// each pixel the rounded mean of the 2x2 block above it (the last row/column repeats).
+/// Next mipmap level of an RGBA8 image: half the size (odd sizes round down, minimum 1, as Metal
+/// and GL size levels), each pixel the rounded mean of the 2x2 block above it. With an odd size
+/// the last column/row averages 3 source columns/rows, so no source pixel is dropped.
 /// Used to fill texture mip levels on the CPU, so the GPU never has to generate them.
 void DownsampleRGBA8(const uint8_t *src,int width,int height,
                      std::vector<uint8_t> &dst,int &dstWidth,int &dstHeight);

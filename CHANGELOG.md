@@ -26,6 +26,11 @@ Newest first. Upstream history before the fork lives in git (`v3.5` tag).
   drawable.
 - GLES: mipmapped textures use `GL_LINEAR_MIPMAP_LINEAR` (was `GL_NEAREST_MIPMAP_LINEAR`).
 
+### Fixed (Codex review)
+- `DownsampleRGBA8` dropped the last row/column of odd-sized levels; it now averages them into
+  the last output pixel (even sizes unchanged).
+- `DisplaySolid` cache could hold 4097 entries; the cap is now a hard 4096.
+
 ## 2026-10-25 (Offto tile plan, Phase 2)
 
 ### Added

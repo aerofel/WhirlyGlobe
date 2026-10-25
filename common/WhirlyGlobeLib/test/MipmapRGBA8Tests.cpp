@@ -30,10 +30,22 @@ int main()
     CHECK(w == 2 && h == 1);
     CHECK(dst[0] == 0 && dst[4] == 200);
 
-    // Odd and thin sizes: 3x1 -> 1x1, 1x1 -> 1x1 (repeat the edge, never read past it)
+    // Odd and thin sizes: 3x1 -> 1x1 keeps all three pixels, 1x1 -> 1x1
     const uint8_t row[12] = { 100,0,0,0,  200,0,0,0,  50,0,0,0 };
     DownsampleRGBA8(row, 3, 1, dst, w, h);
-    CHECK(w == 1 && h == 1 && dst[0] == 150);
+    CHECK(w == 1 && h == 1 && dst[0] == 117);   // 350/3 = 116.7
+
+    // 3x3 -> 1x1 uses all nine pixels (Codex review: the last row/column was dropped)
+    std::vector<uint8_t> nine(3 * 3 * 4, 0);
+    nine[(2 * 3 + 2) * 4] = 255;   // only the bottom-right pixel is lit
+    DownsampleRGBA8(nine.data(), 3, 3, dst, w, h);
+    CHECK(w == 1 && h == 1 && dst[0] == 28);    // 255/9 = 28.3
+
+    // 5x2 -> 2x1: the second output covers source columns 2..4
+    const uint8_t five[40] = { 0,0,0,0, 0,0,0,0, 90,0,0,0, 90,0,0,0, 90,0,0,0,
+                               0,0,0,0, 0,0,0,0, 90,0,0,0, 90,0,0,0, 90,0,0,0 };
+    DownsampleRGBA8(five, 5, 2, dst, w, h);
+    CHECK(w == 2 && h == 1 && dst[0] == 0 && dst[4] == 90);
     DownsampleRGBA8(row, 1, 1, dst, w, h);
     CHECK(w == 1 && h == 1 && dst[0] == 100);
 
