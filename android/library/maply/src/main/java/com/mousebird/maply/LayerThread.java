@@ -555,6 +555,20 @@ public class LayerThread extends HandlerThread implements View.ViewWatcher
 	 * @param run Runnable to run
 	 * @return The Handler if you want to cancel this at some point in the future.
 	 */
+	// offto: HandlerThread.getLooper() locks this thread object, which the scene merge in
+	// addChanges() holds while it processes a change set. Every parse worker handing a tile
+	// back to the sampling thread blocked there (S20 pinch: 2/3 of a worker's busy time).
+	private volatile Looper cachedLooper = null;
+
+	private Looper looper() {
+		Looper looper = cachedLooper;
+		if (looper == null) {
+			looper = getLooper();
+			cachedLooper = looper;
+		}
+		return looper;
+	}
+
 	public Handler addTask(Runnable run) {
 		return addTask(run,false);
 	}
@@ -581,7 +595,7 @@ public class LayerThread extends HandlerThread implements View.ViewWatcher
 	 */
 	public Handler addDelayedTask(Runnable run,long time,boolean unitOfWork) {
 		if (valid && run != null) {
-			Handler handler = new Handler(getLooper());
+			Handler handler = new Handler(looper());
 			handler.postDelayed(unitOfWork ? () -> runWorkRunnable(run, true) : run, time);
 			return handler;
 		}
@@ -615,10 +629,10 @@ public class LayerThread extends HandlerThread implements View.ViewWatcher
 	 */
 	public Handler addTask(Runnable run,boolean wait,boolean unitOfWork) {
 		if (valid && run != null) {
-			if (!wait && Looper.myLooper() == getLooper()) {
+			if (!wait && Looper.myLooper() == looper()) {
 				runWorkRunnable(run, false);
 			} else {
-				Handler handler = new Handler(getLooper());
+				Handler handler = new Handler(looper());
 				handler.post(unitOfWork ? () -> runWorkRunnable(run, true) : run);
 				return handler;
 			}
