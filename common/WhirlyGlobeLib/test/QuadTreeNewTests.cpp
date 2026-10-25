@@ -110,12 +110,30 @@ static void testMaxNodesRespected()
     CHECK(countLevel(nodes, 3) == 64);
 }
 
+// Zoomed far out the target IS the min level. A relative levelLoads entry (-1) must not
+// reach below the min level: those levels are never meant to load.
+static void testLevelLoadsStayAtOrAboveMinLevel()
+{
+    HalfScreenTree tree(3, 7);
+    std::vector<double> rejected(8, 0.0);
+    int level;
+    QuadTreeNew::ImportantNodeSet nodes;
+    // 1e8/4^4 = 390625 < 1e6, so nothing below z3 passes: target = min level
+    std::tie(level, nodes) = tree.calcCoverageVisible(importances(3, 7, 0.0, 1e6), 1024, {-1}, true, rejected);
+
+    CHECK(level == 3);
+    CHECK(countLevel(nodes, 3) == 64);
+    CHECK(countLevel(nodes, 2) == 0);
+    CHECK((int)nodes.size() == 64);
+}
+
 int main()
 {
     testWholeMinLevelResident();
     testShippedSettingUnchanged();
     testMinLevelZeroUnchanged();
     testMaxNodesRespected();
+    testLevelLoadsStayAtOrAboveMinLevel();
     if (failures)
     {
         std::fprintf(stderr, "%d check(s) failed\n", failures);

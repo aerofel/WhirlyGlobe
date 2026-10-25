@@ -277,7 +277,9 @@ std::tuple<int,QuadTreeNew::ImportantNodeSet> QuadTreeNew::calcCoverageVisible(
         for (int level : levelLoads) {
             if (level < 0)
                 level = targetLevel + level;
-            if (level >= 0 && level < maxLevel)
+            // offto: never below the min level (was >= 0). With minLevel > 0 and the target at
+            // the min level, [-1] would otherwise load a whole level that must not exist.
+            if (level >= minLevel && level < maxLevel)
                 levelsToLoad.insert(level);
         }
 
