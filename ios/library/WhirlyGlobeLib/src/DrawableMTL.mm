@@ -17,8 +17,64 @@
  */
 
 #import "DrawableMTL.h"
+#import <mutex>
+#import <map>
+#import <set>
 
 using namespace Eigen;
+
+namespace
+{
+// offto: argument encoders and their reflection, shared per (shader function, buffer index).
+// Creating them (Metal reflection) for every new tile drawable was ~23 % of the sampling-layer
+// thread on an iPad. Sharing is safe because an encoder is only used on the render thread, in
+// preProcess, one drawable at a time, and every use binds its own buffer first
+// (setArgumentBuffer); construction elsewhere only reads encodedLength. The key is the function
+// object itself, so a separate renderer (e.g. an offline one on another thread) has its own
+// programs, functions and encoders.
+struct CachedArgEncoder
+{
+    id<MTLFunction> func;              // kept alive so its address cannot be reused as a key
+    id<MTLArgumentEncoder> encode;
+    std::vector<int> structEntries;    // argument indices of the struct members (uniform blocks)
+    std::set<std::string> constants;   // names of the bool members
+};
+
+std::mutex argEncoderLock;
+std::map<std::pair<const void *,int>,CachedArgEncoder> argEncoders;
+
+CachedArgEncoder cachedArgEncoder(id<MTLFunction> func,int bufferArgIdx)
+{
+    std::lock_guard<std::mutex> guardLock(argEncoderLock);
+    const auto key = std::make_pair((__bridge const void *)func,bufferArgIdx);
+    const auto it = argEncoders.find(key);
+    if (it != argEncoders.end())
+        return it->second;
+
+    CachedArgEncoder entry;
+    entry.func = func;
+    MTLAutoreleasedArgument argInfo;
+    entry.encode = [func newArgumentEncoderWithBufferIndex:bufferArgIdx reflection:&argInfo];
+    if (entry.encode) {
+        if (argInfo.bufferDataType != MTLDataTypeStruct) {
+            NSLog(@"Unexpected buffer data type in Metal Function %@",func.name);
+        }
+        NSArray<MTLStructMember *> *members = argInfo.bufferStructType.members;
+        if (!members) {
+            NSLog(@"Unexpected buffer structure in Metal Function %@",func.name);
+        }
+        for (MTLStructMember *mem in members) {
+            if (mem.dataType == MTLDataTypeStruct) {
+                entry.structEntries.push_back((int)mem.argumentIndex);
+            } else if (mem.dataType == MTLDataTypeBool) {
+                entry.constants.insert([mem.name cStringUsingEncoding:NSASCIIStringEncoding]);
+            }
+        }
+    }
+    argEncoders[key] = entry;
+    return entry;
+}
+}
 
 namespace WhirlyKit
 {
@@ -34,28 +90,17 @@ ArgBuffContentsMTL::ArgBuffContentsMTL(id<MTLDevice> mtlDevice,RenderSetupInfoMT
     valid = false;
     setupInfoMTL = inSetupInfoMTL;
     
-    MTLAutoreleasedArgument argInfo;
-    encode = [func newArgumentEncoderWithBufferIndex:bufferArgIdx reflection:&argInfo];
+    // Shared encoder + reflection for this function and buffer (see cachedArgEncoder)
+    const CachedArgEncoder cached = cachedArgEncoder(func,bufferArgIdx);
+    encode = cached.encode;
     if (!encode)
         return;
     
-    // Figure out which entries are allowed within the argument buffer
-    if (argInfo.bufferDataType != MTLDataTypeStruct) {
-        NSLog(@"Unexpected buffer data type in Metal Function %@",func.name);
-    }
-    NSArray<MTLStructMember *> *members = argInfo.bufferStructType.members;
-    if (!members) {
-        NSLog(@"Unexpected buffer structure in Metal Function %@",func.name);
-    }
-    
     // Work through the members, adding an entry for each one we're to fill in
-    for (MTLStructMember *mem in members) {
-        if (mem.dataType == MTLDataTypeStruct) {
-            entries[mem.argumentIndex] = std::make_shared<Entry>(mem.argumentIndex);
-        } else if (mem.dataType == MTLDataTypeBool) {
-            constants.insert([mem.name cStringUsingEncoding:NSASCIIStringEncoding]);
-        }
+    for (const int entryID : cached.structEntries) {
+        entries[entryID] = std::make_shared<Entry>(entryID);
     }
+    constants = cached.constants;
     
     // Create a buffer to store the arguments in
     if (buffBuild)
@@ -114,7 +159,7 @@ void ArgBuffContentsMTL::addResources(ResourceRefsMTL &resources)
 
 ArgBuffRegularTexturesMTL::ArgBuffRegularTexturesMTL(id<MTLDevice> mtlDevice, RenderSetupInfoMTL *setupInfoMTL, id<MTLFunction> mtlFunction, int bufferArgIdx, BufferBuilderMTL *buildBuff)
 {
-    encode = [mtlFunction newArgumentEncoderWithBufferIndex:bufferArgIdx];
+    encode = cachedArgEncoder(mtlFunction,bufferArgIdx).encode;
     size = [encode encodedLength];
     buffer = setupInfoMTL->heapManage.allocateBuffer(HeapManagerMTL::HeapType::Drawable, size);
     if (buildBuff)
