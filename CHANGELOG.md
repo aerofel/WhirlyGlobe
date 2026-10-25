@@ -2,7 +2,18 @@
 
 Newest first. Upstream history before the fork lives in git (`v3.5` tag).
 
-## 2026-10-25
+## 2026-10-25 (Offto tile plan, Phase 1)
+
+### Added
+- `MaplySamplingParams.residentBaseLevel`: keep a whole coarse level resident (on- and
+  off-screen) as the sampler's min level, above level 1 too.
+- `-[MaplyQuadLoaderBase getZoomLevel]`: the level the sampler is loading, with its fraction.
+- `MaplyImageLoaderInterpreter` declares `dataForTile:loader:` so subclasses can override it.
+
+### Fixed
+- `QuadTreeNew::calcCoverageVisible`: `levelLoads` no longer reaches below the min level.
+
+## 2026-10-25 (Phase 0)
 
 ### Added
 - `SamplingParams.viewUpdatePeriod` (iOS: `MaplySamplingParams.viewUpdatePeriod`): how often the

@@ -21,6 +21,10 @@ Ownership: the iOS Offto instance edits `common/` and `ios/`. The Android Offto 
 | a522ca778 | common + ios | `SamplingParams.viewUpdatePeriod` (+ `MaplySamplingParams.viewUpdatePeriod`); `RawData.h` includes `<functional>` | iOS uses 0.02 s to request tiles sooner while the globe moves. Android Java/JNI setter: **not yet** (handoff) |
 | 5c036a69d | common | `QuadTreeNew::evalNodeVisible`: the importance-0 early return applies only below the min level | With `minZoom > 0` and `minImportanceTop = 0`, the whole min level stays resident (off-screen and back-facing too). Before, off-screen z1/z2 ancestors hid their min-level children |
 | 4741fd4f6 | common + ios | `ImageTile_iOS` deletes a texture it built but never handed off; `SphericalEarthChunkManager` calls `clearTexture()` after taking one | `preprocessTexture()` on a cancelled tile leaked; stickers would double-free with a deleting destructor (latent on Android) |
+| c5b23741e | common | `QuadTreeNew::calcCoverageVisible`: `levelLoads` entries never resolve below the min level | With the target at the min level, `[-1]` loaded the whole level below it |
+| 20a1c0583 | ios | `-[MaplyQuadLoaderBase getZoomLevel]` | The level (with fraction) the sampler is loading; Offto logs it to tune level selection |
+| fef2808ae | ios | `MaplyImageLoaderInterpreter` declares `dataForTile:loader:` | So Swift subclasses can override it and call super (Offto decodes tiles on the parse workers) |
+| 3ddfb19cd | ios | `MaplySamplingParams.residentBaseLevel` | `minZoom` silently refuses > 1 and `setMinImportance:` overwrites a 0 `minImportanceTop`; this sets the base level, `forceMinLevel` and the 0 threshold together. Android Java/JNI: **not yet** (handoff) |
 
 Contract to keep: whoever takes a texture from `ImageTile::buildTexture()` and hands it to an
 `AddTextureReq` must call `clearTexture()`. An `ImageTile` deletes any texture it still holds.
