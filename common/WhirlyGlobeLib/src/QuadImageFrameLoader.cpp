@@ -334,7 +334,8 @@ void QIFTileAsset::setupContents(QuadImageFrameLoader *loader,
             auto drawInst = loader->getController()->getRenderer()->makeBasicDrawableInstanceBuilder(&buf[0]);
             drawInst->setMasterID(di.drawID, BasicDrawableInstance::ReuseStyle);
             drawInst->setTexId(0, EmptyIdentity);
-            if (loader->getNumFrames() > 1)
+            // offto: slot 1 for a second frame, or for a frame that carries two images
+            if (loader->getNumFrames() > 1 || loader->getImagesPerTile() > 1)
                 drawInst->setTexId(1, EmptyIdentity);
             drawInst->setDrawPriority(newDrawPriority);
             drawInst->setOnOff(false);
@@ -733,28 +734,19 @@ void QIFRenderState::updateScene(Scene *scene,
             // the old code sent every texture, on/off and uniform of every tile, every update.
             QIFDrawState want;
             if (enable) {
-                // Assign as many active textures as we've got
-                for (unsigned int ii=0;ii<numFrames && ii<2;ii++) {
+                // Assign as many active textures as we've got (QIFTileTextures, host-tested)
+                QIFFrameTextures frameTex[2];
+                for (int ii=0;ii<numFrames && ii<2;ii++) {
                     const auto &frame = tile->frames[activeFrames[ii]];
-                    if (frame.texIDs.empty()) {
-                        enable = false;
-                        break;
-                    }
-                    const auto relLevel = (unsigned)std::max(0, tileID.level - frame.texNode.level);
-                    const int relX = tileID.x - frame.texNode.x * (int)(1U<<relLevel);
-                    // Note: Confused why this works for both modes
-                    //       Might be how the textures are laid out.  Still.  Wah?
-                    const int tileIDY = (int)(1U<<(unsigned)tileID.level)-tileID.y-1;
-                    const int frameIdentY = (int)(1U<<(unsigned)frame.texNode.level)-frame.texNode.y-1;
-                    const int relY = tileIDY - frameIdentY * (int)(1U<<relLevel);
-                    // We just use the first texture: one texture per frame
-                    want.tex[ii] = QIFDrawTex(frame.texIDs[0],texSize,borderSize,(int)relLevel,relX,relY);
+                    frameTex[ii].texIDs = &frame.texIDs;
+                    frameTex[ii].nodeLevel = frame.texNode.level;
+                    frameTex[ii].nodeX = frame.texNode.x;
+                    frameTex[ii].nodeY = frame.texNode.y;
                 }
+                enable = QIFTileTextures(tileID.level,tileID.x,tileID.y,frameTex,numFrames,imagesPerTile,
+                                         texSize,borderSize,want.tex);
             }
             if (enable) {
-                // The other texture slot stays empty with a single frame
-                if (numFrames == 1)
-                    want.tex[1] = QIFDrawTex();
                 want.on = true;
                 // Interpolate between two frames or snap to one
                 want.hasUniforms = true;
@@ -1316,6 +1308,7 @@ void QuadImageFrameLoader::buildRenderState(ChangeSet &changes)
     newRenderState.borderSize = borderSize;
     newRenderState.fadeDuration = textureFadeDuration;
     newRenderState.fadeMinLevel = params.minZoom;
+    newRenderState.imagesPerTile = imagesPerTile;
     for (int frameID=0;frameID<numFrames;frameID++)
         newRenderState.topTilesLoaded[frameID] = true;
         

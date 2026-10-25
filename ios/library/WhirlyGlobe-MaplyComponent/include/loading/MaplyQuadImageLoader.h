@@ -209,6 +209,14 @@ extern NSString * _Nonnull const MaplyQuadImageLoaderFetcherName;
  */
 @property (nonatomic) bool prepareTexturesOnWorkers;
 
+/**
+ offto: images one fetch carries per frame (1 or 2, default 1). With 2 and a single tile info, the
+ fetcher returns a MaplyImageLoaderReturn with two tile-data entries (e.g. day + night), they are
+ parsed and merged together, and the tile drawables show them in texture slots 0 and 1.
+ Set before the loader starts.
+ */
+@property (nonatomic) int imagesPerTile;
+
 @end
 
 /**

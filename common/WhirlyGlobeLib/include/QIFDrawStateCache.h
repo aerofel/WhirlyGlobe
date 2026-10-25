@@ -14,6 +14,7 @@
  */
 
 #import <unordered_map>
+#import <vector>
 #import <cstdint>
 #import "Identifiable.h"
 
@@ -48,6 +49,25 @@ struct QIFDrawState
     // Allowed to fade in when its own texture first replaces a fallback (crossfade)
     bool fadeIn = false;
 };
+
+/// offto: one active frame's textures as the render state sees them: the texture IDs and the
+/// tile they belong to (the tile itself, or an ancestor while its own load is pending).
+struct QIFFrameTextures
+{
+    const std::vector<SimpleIdentity> *texIDs = nullptr;
+    int nodeLevel = 0, nodeX = 0, nodeY = 0;
+};
+
+/**
+    offto: which texture each slot of a tile drawable shows.
+    Two active frames: slot = frame, the first texture of each (one texture per frame).
+    One active frame: its textures fill slots 0 ..< min(count, texturesPerFrame, 2) (a frame that
+    carries day + night together); the other slot stays empty.
+    Returns false when an active frame has no texture yet (the drawable is then turned off).
+ */
+bool QIFTileTextures(int tileLevel,int tileX,int tileY,
+                     const QIFFrameTextures *frames,int numFrames,int texturesPerFrame,
+                     int texSize,int borderSize,QIFDrawTex out[2]);
 
 /**
     Remembers what each tile drawable last received from QIFRenderState::updateScene, so an

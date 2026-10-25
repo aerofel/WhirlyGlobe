@@ -20,6 +20,7 @@
 #import "QuadLoaderReturn.h"
 #import "ComponentManager.h"
 #import "QIFDrawStateCache.h"
+#import <algorithm>
 
 namespace WhirlyKit
 {
@@ -311,6 +312,8 @@ public:
     // below fadeMinLevel (the always-resident base would fade in from nothing)
     double fadeDuration = 0.0;
     int fadeMinLevel = 0;
+    // offto: textures a single frame may carry (2 = day + night in one frame)
+    int imagesPerTile = 1;
     
     // Number of tiles loaded for each frame
     std::vector<int> tilesLoaded;
@@ -430,6 +433,12 @@ public:
     /// offto: give tile textures a full mip chain (trilinear minification, no shimmer)
     void setUsesMipmaps(bool use) { usesMipmaps = use; }
     bool getUsesMipmaps() const { return usesMipmaps; }
+
+    /// offto: images one load return carries per frame (1-2). With one frame and 2 images (day +
+    /// night fetched, parsed and merged together) the tile drawables get texture slots 0 and 1.
+    /// Set before loading starts.
+    void setImagesPerTile(int num) { imagesPerTile = std::max(1,std::min(num,2)); }
+    int getImagesPerTile() const { return imagesPerTile; }
 
     /// offto: build and convert textures on the parse workers (prepareLoadReturn) instead of the
     /// sampling thread. Off by default.
@@ -708,6 +717,7 @@ protected:
     double textureFadeDuration = 0.0;
     bool usesMipmaps = false;
     bool prepareOnWorkers = false;
+    int imagesPerTile = 1;
     
     bool changesSinceLastFlush;
     

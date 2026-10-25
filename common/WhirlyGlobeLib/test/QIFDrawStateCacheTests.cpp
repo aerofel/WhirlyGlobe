@@ -23,6 +23,9 @@ struct Recorder : QIFDrawStateCache::Emitter
     { sent.push_back(std::to_string(id) + " uni t=" + std::to_string(t) + " a=" + std::to_string(color[3])); }
     void fadeIn(SimpleIdentity id) override { sent.push_back(std::to_string(id) + " fade"); fades++; }
     int fades = 0;
+    int textureCount() const
+    { int n = 0; for (const auto &s : sent) if (s.find(" tex") != std::string::npos) n++; return n; }
+    void clear() { sent.clear(); fades = 0; }
 };
 
 static QIFDrawState onWith(SimpleIdentity day,SimpleIdentity night,int rel = 0,float t = 0.5f)
@@ -152,6 +155,74 @@ int main()
         std::fprintf(stderr, "%d check(s) failed\n", failures);
         return 1;
     }
+    // QIFTileTextures: which texture each slot shows
+    {
+        QIFDrawTex out[2];
+        const std::vector<SimpleIdentity> day = {100}, night = {101}, both = {100, 101}, none;
+
+        // Two frames, one texture each: slot = frame (today's day/night loader)
+        QIFFrameTextures two[2];
+        two[0].texIDs = &day;   two[0].nodeLevel = 5; two[0].nodeX = 10; two[0].nodeY = 12;
+        two[1].texIDs = &night; two[1].nodeLevel = 5; two[1].nodeX = 10; two[1].nodeY = 12;
+        CHECK(QIFTileTextures(5, 10, 12, two, 2, 1, 256, 0, out));
+        CHECK(out[0].texID == 100 && out[1].texID == 101 && out[0].relLevel == 0);
+        // ...and the same with texturesPerFrame 2: still one texture per frame
+        CHECK(QIFTileTextures(5, 10, 12, two, 2, 2, 256, 0, out));
+        CHECK(out[0].texID == 100 && out[1].texID == 101);
+
+        // Two frames, one not loaded yet: off
+        two[1].texIDs = &none;
+        CHECK(!QIFTileTextures(5, 10, 12, two, 2, 1, 256, 0, out));
+
+        // One frame, one texture (a two-frame loader showing one frame): slot 1 empty
+        QIFFrameTextures one[1];
+        one[0].texIDs = &day; one[0].nodeLevel = 5; one[0].nodeX = 10; one[0].nodeY = 12;
+        CHECK(QIFTileTextures(5, 10, 12, one, 1, 1, 256, 0, out));
+        CHECK(out[0].texID == 100 && out[1].texID == EmptyIdentity);
+
+        // One frame carrying day + night, imagesPerTile 1: only the first (unchanged behaviour)
+        one[0].texIDs = &both;
+        CHECK(QIFTileTextures(5, 10, 12, one, 1, 1, 256, 0, out));
+        CHECK(out[0].texID == 100 && out[1].texID == EmptyIdentity);
+
+        // One frame carrying day + night, imagesPerTile 2: slots 0 and 1, same sub-rect
+        CHECK(QIFTileTextures(5, 10, 12, one, 1, 2, 256, 0, out));
+        CHECK(out[0].texID == 100 && out[1].texID == 101);
+        CHECK(out[0].relLevel == 0 && out[1].relLevel == 0 && out[0].size == 256);
+
+        // ...from a parent (z4) while the tile's own load is pending: both slots use the parent's
+        // textures through the same sub-rectangle
+        one[0].nodeLevel = 4; one[0].nodeX = 5; one[0].nodeY = 6;
+        CHECK(QIFTileTextures(5, 11, 13, one, 1, 2, 256, 0, out));
+        CHECK(out[0].texID == 100 && out[1].texID == 101);
+        CHECK(out[0].relLevel == 1 && out[1].relLevel == 1);
+        CHECK(out[0].relX == 1 && out[1].relX == 1 && out[0].relY == out[1].relY);
+
+        // imagesPerTile 2 but the frame has one texture: slot 1 is cleared
+        one[0].texIDs = &day; one[0].nodeLevel = 5; one[0].nodeX = 10; one[0].nodeY = 12;
+        CHECK(QIFTileTextures(5, 10, 12, one, 1, 2, 256, 0, out));
+        CHECK(out[0].texID == 100 && out[1].texID == EmptyIdentity);
+
+        // Fade on the combined tile: fires once when slot 0 becomes its own, not again for slot 1
+        QIFDrawStateCache cache;
+        Recorder r;
+        QIFDrawState fromParent;
+        fromParent.on = true; fromParent.fadeIn = true;
+        one[0].texIDs = &both; one[0].nodeLevel = 4; one[0].nodeX = 5; one[0].nodeY = 6;
+        QIFTileTextures(5, 10, 12, one, 1, 2, 256, 0, fromParent.tex);
+        cache.beginPass(); cache.apply(9, fromParent, true, r); cache.endPass();
+        r.clear();
+        QIFDrawState own = fromParent;
+        const std::vector<SimpleIdentity> ownBoth = {200, 201};
+        one[0].texIDs = &ownBoth; one[0].nodeLevel = 5; one[0].nodeX = 10; one[0].nodeY = 12;
+        QIFTileTextures(5, 10, 12, one, 1, 2, 256, 0, own.tex);
+        cache.beginPass(); cache.apply(9, own, true, r); cache.endPass();
+        CHECK(r.fades == 1 && r.textureCount() == 2);
+        r.clear();
+        cache.beginPass(); cache.apply(9, own, true, r); cache.endPass();
+        CHECK(r.fades == 0 && r.textureCount() == 0);
+    }
+
     std::printf("QIFDrawStateCacheTests: all passed\n");
     return 0;
 }

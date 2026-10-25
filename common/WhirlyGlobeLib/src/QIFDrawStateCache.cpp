@@ -15,9 +15,36 @@
 
 #import "QIFDrawStateCache.h"
 #import <cstring>
+#import <algorithm>
 
 namespace WhirlyKit
 {
+
+bool QIFTileTextures(int tileLevel,int tileX,int tileY,
+                     const QIFFrameTextures *frames,int numFrames,int texturesPerFrame,
+                     int texSize,int borderSize,QIFDrawTex out[2])
+{
+    out[0] = QIFDrawTex();
+    out[1] = QIFDrawTex();
+    numFrames = std::min(numFrames,2);
+    const int perFrame = (numFrames == 1) ? std::max(1,std::min(texturesPerFrame,2)) : 1;
+    for (int ii=0;ii<numFrames;ii++) {
+        const auto &frame = frames[ii];
+        if (!frame.texIDs || frame.texIDs->empty())
+            return false;
+        const auto relLevel = (unsigned)std::max(0, tileLevel - frame.nodeLevel);
+        const int relX = tileX - frame.nodeX * (int)(1U<<relLevel);
+        // Note: Confused why this works for both modes
+        //       Might be how the textures are laid out.  Still.  Wah?
+        const int tileIDY = (int)(1U<<(unsigned)tileLevel)-tileY-1;
+        const int frameIdentY = (int)(1U<<(unsigned)frame.nodeLevel)-frame.nodeY-1;
+        const int relY = tileIDY - frameIdentY * (int)(1U<<relLevel);
+        const int count = std::min(perFrame,(int)frame.texIDs->size());
+        for (int kk=0;kk<count;kk++)
+            out[ii+kk] = QIFDrawTex((*frame.texIDs)[kk],texSize,borderSize,(int)relLevel,relX,relY);
+    }
+    return true;
+}
 
 bool QIFDrawTex::operator==(const QIFDrawTex &that) const
 {
