@@ -211,8 +211,11 @@ bool QuadTreeNew::evalNodeVisible(ImportantNode node, const std::vector<double> 
     if (node.level == minLevel && node.importance < minImportance[node.level])
         return true;
 
-    // Skip anything we wouldn't have evaluated in the first pass
-    if (node.level != minLevel && node.level <= inMaxLevel && node.importance == 0.0)
+    // Skip anything we wouldn't have evaluated in the first pass.
+    // offto: only below the min level. Levels above it are never loaded, and an off-screen
+    // or back-facing ancestor (importance 0) must not hide min-level tiles that
+    // evalNodeImportance accepted (minImportanceTop = 0 keeps the whole min level resident).
+    if (node.level > minLevel && node.level <= inMaxLevel && node.importance == 0.0)
         return true;
 
     // Only add to the visible set if we want it
