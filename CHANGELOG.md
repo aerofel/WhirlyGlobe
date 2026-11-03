@@ -13,6 +13,11 @@ Newest first. Upstream history before the fork lives in git (`v3.5` tag).
   With a min level of 3 (`residentBaseLevel`) that is 64 chances instead of 1. Simulator: 4 of 5
   runs black before, 0 of 10 after, with 732 tiles in flight at the reload. Common code: iOS and
   Android.
+- Same function: an older-generation return no longer fails the frame either (Codex review: a stale
+  return with an error or no image could still wipe the new fetch).
+- `clearLoadReturnRef`: a finished return clears the frame's reference only if it is still its own.
+  It used to clear unconditionally, so a stale return made the replacement impossible to cancel.
+  iOS only uses it for now (`MaplyQuadLoader.mm`).
 
 ## 2026-10-26 (Android: tile plan Java/JNI, tile pipeline hand-offs)
 

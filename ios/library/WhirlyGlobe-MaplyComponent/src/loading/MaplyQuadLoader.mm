@@ -663,7 +663,9 @@ using namespace WhirlyKit;
     }
     loader->mergeLoadedTile(nullptr,loadReturn->loadReturn.get(),changes);
 
-    loader->setLoadReturnRef(loadReturn->loadReturn->ident,loadReturn->loadReturn->frame,nullptr);
+    // offto: only if it is still this return. A stale one finishing must not clear its
+    // replacement's reference, or a later reload could not cancel the replacement.
+    loader->clearLoadReturnRef(loadReturn->loadReturn->ident,loadReturn->loadReturn->frame,loadReturn->loadReturn.get());
 
     [thread addChangeRequests:changes];
 }

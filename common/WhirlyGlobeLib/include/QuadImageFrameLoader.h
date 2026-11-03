@@ -90,6 +90,10 @@ public:
     // Store the data used by the interpreter for processing
     virtual void setLoadReturnRef(QuadLoaderReturnRef &&loadReturnRef);
 
+    /// offto: Drop the loader return reference only if it is still this one
+    /// (a stale return finishing must not forget its replacement)
+    void clearLoadReturnRef(const QuadLoaderReturn *owner);
+
     // Return the load return
     virtual RawDataRef getLoadReturn();
     
@@ -181,6 +185,9 @@ public:
 
     // Set the loader return used by the interpreter so we can cancel it
     virtual void setLoadReturnRef(const QuadFrameInfoRef &frame, const QuadLoaderReturnRef &loadReturnRef);
+
+    /// offto: Drop the loader return reference of the frame(s) if it is still this one
+    void clearLoadReturnRef(const QuadFrameInfoRef &frame, const QuadLoaderReturn *owner);
 
     // True if all frames are loaded (just for single frame + multiple source mode)
     virtual bool allFramesLoaded();
@@ -616,6 +623,11 @@ public:
     void setLoadReturnRef(const QuadTreeIdentifier &ident,
                           const QuadFrameInfoRef &frame,
                           const QuadLoaderReturnRef &loadReturnRef);
+
+    /// offto: Drop a frame's loader return reference if it is still this one
+    void clearLoadReturnRef(const QuadTreeIdentifier &ident,
+                            const QuadFrameInfoRef &frame,
+                            const QuadLoaderReturn *owner);
     
     /// Called when the data for a frame comes back
     /// Returns true if that tile is ready for merging

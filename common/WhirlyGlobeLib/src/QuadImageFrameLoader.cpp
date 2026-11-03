@@ -172,6 +172,12 @@ void QIFFrameAsset::setLoadReturnRef(const QuadLoaderReturnRef &inLoadReturn)
     fetchedTime = QuadImageFrameLoader::pipelineNow();
 }
 
+void QIFFrameAsset::clearLoadReturnRef(const QuadLoaderReturn *owner)
+{
+    if (loadReturnRef.get() == owner)
+        loadReturnRef.reset();
+}
+
 void QIFFrameAsset::clearLoadReturn()
 {
     loadReturn.reset();
@@ -573,6 +579,18 @@ bool QIFTileAsset::isFrameLoading(SimpleIdentity id)
         }
     }
     return false;
+}
+
+void QIFTileAsset::clearLoadReturnRef(const QuadFrameInfoRef &frameInfo, const QuadLoaderReturn *owner)
+{
+    const auto id = frameInfo ? frameInfo->getId() : EmptyIdentity;
+    for (const auto &frame : frames)
+    {
+        if (id == EmptyIdentity || frame->getFrameInfo()->getId() == id)
+        {
+            frame->clearLoadReturnRef(owner);
+        }
+    }
 }
 
 void QIFTileAsset::setLoadReturnRef(const QuadFrameInfoRef &frameInfo, const QuadLoaderReturnRef &loadReturnRef)
@@ -1119,11 +1137,12 @@ void QuadImageFrameLoader::mergeLoadedTile(PlatformThreadInfo *threadInfo,QuadLo
     {
         if (failed)
         {
-            // offto: a cancelled return must not touch the frame. Whoever cancelled it already
-            // set the state to Empty, and reload() may have started a new fetch since (Loading).
-            // Failing the frame here would wipe that state, the new data would then be dropped
-            // in mergeFetchRequest, and one lost min-level tile switches off the whole globe.
-            if (!loadReturn->cancel)
+            // offto: a return that was cancelled, or belongs to an older generation, must not
+            // touch the frame. Whoever cancelled it already set the state to Empty, and reload()
+            // may have started a new fetch since (Loading). Failing the frame here would wipe that
+            // state, the new data would then be dropped in mergeFetchRequest, and one lost
+            // min-level tile switches off the whole globe.
+            if (!loadReturn->cancel && loadReturn->generation >= generation)
                 tile->frameFailed(threadInfo, this, loadReturn, changes);
         }
         else if (!tile->frameLoaded(threadInfo, this, loadReturn, texs, changes))
@@ -1718,6 +1737,14 @@ void QuadImageFrameLoader::setLoadReturnRef(const QuadTreeIdentifier &ident,cons
     const auto it = tiles.find(ident);
     if (it != tiles.end()) {
         it->second->setLoadReturnRef(frame,loadReturnRef);
+    }
+}
+
+void QuadImageFrameLoader::clearLoadReturnRef(const QuadTreeIdentifier &ident,const QuadFrameInfoRef &frame,const QuadLoaderReturn *owner)
+{
+    const auto it = tiles.find(ident);
+    if (it != tiles.end()) {
+        it->second->clearLoadReturnRef(frame,owner);
     }
 }
 
