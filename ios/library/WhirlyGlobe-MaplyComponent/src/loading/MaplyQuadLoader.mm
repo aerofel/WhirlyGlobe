@@ -439,6 +439,7 @@ using namespace WhirlyKit;
             NSLog(@"MaplyQuadLader:fetchRequestSuccess: client return unknown data type.  Dropping.");
         }
     }
+    loadData->fetchRequest = request;
 
     {
         std::lock_guard<std::mutex> lock(self->pendingReturnsLock);
@@ -539,7 +540,17 @@ using namespace WhirlyKit;
         [self cleanupLoadedData:loadReturn];
         return;
     }
-    
+
+    // offto: A request a reload replaced can still come back, and be stamped with the new
+    // generation if its return was built after the reload. The frame is Loading for its
+    // replacement, so only the request can tell them apart. Same thread as reload, so no race.
+    MaplyTileFetchRequest *fetchRequest = loadReturn->fetchRequest;
+    loadReturn->fetchRequest = nil;
+    if (fetchRequest && !loader->isCurrentRequest(tileID,loadReturn->loadReturn->frame,fetchRequest)) {
+        [self cleanupLoadedData:loadReturn];
+        return;
+    }
+
     // Might be keeping the data coming back per frame
     // If we are, this tells us to merge when all the data has come back
     auto dataWrap = std::make_shared<RawNSDataReader>([loadReturn getFirstData]);

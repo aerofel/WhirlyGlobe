@@ -182,6 +182,15 @@ void QIFTileAsset_ios::startFetching(PlatformThreadInfo *threadInfo,
     }
 }
     
+bool QuadImageFrameLoader_ios::isCurrentRequest(const QuadTreeIdentifier &ident,const QuadFrameInfoRef &frame,MaplyTileFetchRequest *fetchRequest)
+{
+    const auto it = tiles.find(ident);
+    if (it == tiles.end() || !frame)
+        return false;
+    const auto frameAsset = std::dynamic_pointer_cast<QIFFrameAsset_ios>(it->second->findFrameFor(frame));
+    return frameAsset && frameAsset->getRequest() == fetchRequest;
+}
+
 QuadImageFrameLoader_ios::QuadImageFrameLoader_ios(const SamplingParams &params,NSObject<MaplyTileInfoNew> *inTileInfo,Mode mode)
 : QuadImageFrameLoader(params,mode), tileFetcher(nil), layer(nil)
 {

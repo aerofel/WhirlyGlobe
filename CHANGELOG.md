@@ -18,6 +18,9 @@ Newest first. Upstream history before the fork lives in git (`v3.5` tag).
 - `clearLoadReturnRef`: a finished return clears the frame's reference only if it is still its own.
   It used to clear unconditionally, so a stale return made the replacement impossible to cancel.
   iOS only uses it for now (`MaplyQuadLoader.mm`).
+- iOS `mergeFetchRequest`: a return is merged only if its request is still the one the frame waits
+  for (`isCurrentRequest`). A replaced request could still come back stamped with the new generation
+  and pass as current (Codex review). Android: `QuadLoaderBase.java` needs the same check.
 
 ## 2026-10-26 (Android: tile plan Java/JNI, tile pipeline hand-offs)
 

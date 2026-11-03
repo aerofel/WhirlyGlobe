@@ -75,6 +75,9 @@ public:
     // We're not bothering to load it, but pretend like it succeeded
     virtual void loadSkipped() override;
 
+    // offto: The fetch this frame is waiting for
+    MaplyTileFetchRequest *getRequest() const { return request; }
+
 protected:
     // Returned by the TileFetcher
     MaplyTileFetchRequest *request;
@@ -113,7 +116,10 @@ public:
     // Displaying multiple animated frames (or one with multiple data sources)
     QuadImageFrameLoader_ios(const SamplingParams &params,NSArray<NSObject<MaplyTileInfoNew> *> *inFrameInfos,Mode mode);
     ~QuadImageFrameLoader_ios();
-        
+
+    // offto: Is this the fetch the frame is waiting for? A request a reload replaced is not.
+    bool isCurrentRequest(const QuadTreeIdentifier &ident,const QuadFrameInfoRef &frame,MaplyTileFetchRequest *fetchRequest);
+
     NSObject<MaplyTileFetcher> * __weak tileFetcher;
     NSArray<NSObject<MaplyTileInfoNew> *> *frameInfos;
     

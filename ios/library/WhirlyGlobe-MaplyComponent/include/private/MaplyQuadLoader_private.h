@@ -74,6 +74,8 @@
 
 @end
 
+@class MaplyTileFetchRequest;
+
 @interface MaplyLoaderReturn()
 {
 @public
@@ -84,6 +86,9 @@
 
     // Unparsed data coming back
     std::vector<id> tileData;
+
+    // offto: The fetch that produced this return, checked before it is merged
+    MaplyTileFetchRequest *fetchRequest;
 }
 
 @end
