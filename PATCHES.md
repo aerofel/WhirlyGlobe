@@ -40,6 +40,7 @@ Ownership: the iOS Offto instance edits `common/` and `ios/`. The Android Offto 
 | 2a628a77b | android | Java/JNI: view update period (and `LayerThread` honours the smallest watcher `minTime`), resident base level, `Stats.pipeline`, fade, mipmaps, `imagesPerTile` | Offto tile plan handoffs, Android side |
 | e3bfe6003 | android | `LayerThread` caches its looper | `getLooper()` locks the thread object that the scene merge holds: parse workers blocked handing tiles back (S20) |
 | d1290221c | android | `SimpleTileFetcher` parse slots refilled on the worker, one `updateLoading` chain; `ImageLoaderInterpreter` decodes into a reused bitmap per thread | S20 pinch: median burst 249 → 66-100 ms |
+| ccca39ac8 | common | `QuadImageFrameLoader::mergeLoadedTile`: a cancelled return no longer calls `frameFailed` | `reload()` during a first load wiped the new fetch state, dropped its data and could turn off the whole globe (min-level tile lost). iOS 3.1, Android needs a new AAR |
 
 Contract to keep: whoever takes a texture from `ImageTile::buildTexture()` and hands it to an
 `AddTextureReq` must call `clearTexture()`. An `ImageTile` deletes any texture it still holds.
