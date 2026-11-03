@@ -2,6 +2,18 @@
 
 Newest first. Upstream history before the fork lives in git (`v3.5` tag).
 
+## 2026-11-04 (reload during a first tile load: black globe)
+
+### Fixed
+- `QuadImageFrameLoader::mergeLoadedTile`: a cancelled return no longer calls `frameFailed`.
+  `reload()` cancels parses in flight and starts new fetches (state Loading). The cancelled parse
+  then merged, set the state to Empty, the new data was dropped in `mergeFetchRequest`
+  (`isFrameLoading` false) and never requested again (tilesToLoad 0). One lost tile at the min level
+  makes `topTilesLoaded` false, `numFrames` 0, and turns every tile off: a black globe for good.
+  With a min level of 3 (`residentBaseLevel`) that is 64 chances instead of 1. Simulator: 4 of 5
+  runs black before, 0 of 10 after, with 732 tiles in flight at the reload. Common code: iOS and
+  Android.
+
 ## 2026-10-26 (Android: tile plan Java/JNI, tile pipeline hand-offs)
 
 ### Added

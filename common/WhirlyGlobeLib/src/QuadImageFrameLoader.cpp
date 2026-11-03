@@ -1119,7 +1119,12 @@ void QuadImageFrameLoader::mergeLoadedTile(PlatformThreadInfo *threadInfo,QuadLo
     {
         if (failed)
         {
-            tile->frameFailed(threadInfo, this, loadReturn, changes);
+            // offto: a cancelled return must not touch the frame. Whoever cancelled it already
+            // set the state to Empty, and reload() may have started a new fetch since (Loading).
+            // Failing the frame here would wipe that state, the new data would then be dropped
+            // in mergeFetchRequest, and one lost min-level tile switches off the whole globe.
+            if (!loadReturn->cancel)
+                tile->frameFailed(threadInfo, this, loadReturn, changes);
         }
         else if (!tile->frameLoaded(threadInfo, this, loadReturn, texs, changes))
         {
