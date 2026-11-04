@@ -20,7 +20,11 @@ Newest first. Upstream history before the fork lives in git (`v3.5` tag).
   iOS only uses it for now (`MaplyQuadLoader.mm`).
 - iOS `mergeFetchRequest`: a return is merged only if its request is still the one the frame waits
   for (`isCurrentRequest`). A replaced request could still come back stamped with the new generation
-  and pass as current (Codex review). Android: `QuadLoaderBase.java` needs the same check.
+  and pass as current (Codex review).
+- Android, the same two: `QuadLoaderBase_jni.cpp` clears through `clearLoadReturnRef`; `QuadLoaderBase`
+  drops a return whose request is no longer the frame's (`QIFFrameAsset.request`, now volatile), early on
+  the fetch worker and again on the layer thread before the merge. S20 with the z8 pack, a reload every
+  40 ms for 3 s during the first load (debug engine): 8 of 11 launches broken before, 0 of 16 after.
 
 ## 2026-10-26 (Android: tile plan Java/JNI, tile pipeline hand-offs)
 

@@ -288,8 +288,11 @@ static void setLoadReturnRef(JNIEnv *env, jobject obj, jobject loadReturnObj,boo
             {
                 if (const auto loadReturn = *loadReturnPtr)
                 {
-                    const auto ptr = clear ? nullptr : loadReturn;
-                    loader->setLoadReturnRef(loadReturn->ident,loadReturn->frame,ptr);
+                    // offto: a stale return must not forget its replacement
+                    if (clear)
+                        loader->clearLoadReturnRef(loadReturn->ident,loadReturn->frame,loadReturn.get());
+                    else
+                        loader->setLoadReturnRef(loadReturn->ident,loadReturn->frame,loadReturn);
                 }
             }
         }
@@ -354,7 +357,8 @@ JNIEXPORT void JNICALL Java_com_mousebird_maply_QuadLoaderBase_mergeLoaderReturn
         loadReturn->clear();
 
         // Detach the loader return from the frame
-        loader->setLoadReturnRef(loadReturn->ident,loadReturn->frame,nullptr);
+        // offto: only if it is still this one (a stale return must not forget its replacement)
+        loader->clearLoadReturnRef(loadReturn->ident,loadReturn->frame,loadReturn.get());
 
         // Destroy the loader return root reference
         LoaderReturnClassInfo::getClassInfo()->clearHandle(env,loadRetObj);

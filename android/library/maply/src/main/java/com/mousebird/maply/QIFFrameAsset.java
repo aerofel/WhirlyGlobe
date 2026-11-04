@@ -29,7 +29,8 @@ class QIFFrameAsset
     protected QIFFrameAsset() { initialise(); }
 
     // The tile fetch request, if active
-    TileFetchRequest request = null;
+    // offto: volatile, written on the layer thread and read by the fetch workers
+    volatile TileFetchRequest request = null;
 
     // Clear out any active fetches for this frame
     // Called by the C++ side

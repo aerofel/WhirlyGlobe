@@ -43,6 +43,7 @@ Ownership: the iOS Offto instance edits `common/` and `ios/`. The Android Offto 
 | ccca39ac8 | common | `QuadImageFrameLoader::mergeLoadedTile`: a cancelled return no longer calls `frameFailed` | `reload()` during a first load wiped the new fetch state, dropped its data and could turn off the whole globe (min-level tile lost). iOS 3.1, Android needs a new AAR |
 | 19b34bf09 | common + ios | `mergeLoadedTile`: an older-generation return no longer fails the frame; `QuadImageFrameLoader::clearLoadReturnRef` (owner only) replaces `setLoadReturnRef(nullptr)` in `MaplyQuadLoader.mm` | A stale return could still wipe the new fetch, or make it impossible to cancel |
 | 7a1d754cd | ios | `MaplyQuadLoader mergeFetchRequest`: `QuadImageFrameLoader_ios::isCurrentRequest` rejects a return whose request is no longer the frame's | A replaced request stamped with the new generation passed as current |
+| (see git log) | android | `QuadLoaderBase_jni.cpp` uses `clearLoadReturnRef`; `QuadLoaderBase.fetchSuccess` drops a return whose request is no longer the frame's (`QIFFrameAsset.request`) | Android side of ccca39ac8, 19b34bf09, 7a1d754cd |
 
 Contract to keep: whoever takes a texture from `ImageTile::buildTexture()` and hands it to an
 `AddTextureReq` must call `clearTexture()`. An `ImageTile` deletes any texture it still holds.

@@ -355,29 +355,32 @@ public class QuadLoaderBase implements QuadSamplingLayer.ClientInterface
             final long frameID = getFrameID(frame);
             //final int dispFrame = tileInfos.length > 1 ? frame : -1;
 
-            // Put together a fetch request for, you know, fetching
-            final TileFetchRequest fetchRequest = new TileFetchRequest();
-            fetchRequest.priority = inFrameAssets[frame].getPriority();
-            fetchRequest.importance = (float)importance;
-            fetchRequest.callback = new TileFetchRequest.Callback() {
-                @Override
-                public void success(TileFetchRequest fetchRequest, byte[] data) {
-                    fetchSuccess(fetchRequest, tileID, fFrame, frameID, data);
-                }
-                @Override
-                public void failure(TileFetchRequest fetchRequest, String errorStr) {
-                    fetchFailed(fetchRequest, errorStr);
-                }
-            };
-
             // Update the frame asset and track it
-            QIFFrameAsset frameAsset = inFrameAssets[frame];
+            final QIFFrameAsset frameAsset = inFrameAssets[frame];
             frameAssets.add(frameAsset);
 
             // If the tile is outside the range of valid zoom levels for this source,
             // produce an empty placeholder tile instead of attempting to load it.
             final boolean placeholder = tileInfo != null &&
                     (tileID.level < tileInfo.minZoom || tileID.level > tileInfo.maxZoom);
+
+            // offto: only a real fetch is recorded as the frame's request (see isStaleRequest)
+            final QIFFrameAsset requestOwner = (tileInfo != null && !placeholder) ? frameAsset : null;
+
+            // Put together a fetch request for, you know, fetching
+            final TileFetchRequest fetchRequest = new TileFetchRequest();
+            fetchRequest.priority = frameAsset.getPriority();
+            fetchRequest.importance = (float)importance;
+            fetchRequest.callback = new TileFetchRequest.Callback() {
+                @Override
+                public void success(TileFetchRequest fetchRequest, byte[] data) {
+                    fetchSuccess(fetchRequest, requestOwner, tileID, fFrame, frameID, data);
+                }
+                @Override
+                public void failure(TileFetchRequest fetchRequest, String errorStr) {
+                    fetchFailed(fetchRequest, errorStr);
+                }
+            };
 
             if (tileInfo != null && !placeholder) {
                 fetchRequest.fetchInfo = tileInfo.fetchInfoForTile(tileID, getFlipY());
@@ -397,7 +400,14 @@ public class QuadLoaderBase implements QuadSamplingLayer.ClientInterface
         }
     }
 
-    private void fetchSuccess(@SuppressWarnings("unused") TileFetchRequest fetchRequest,
+    // offto: A request a reload replaced can still come back, and be stamped with the new
+    // generation if its return is built after the reload. The frame is Loading for its
+    // replacement, so only the request can tell them apart.
+    private static boolean isStaleRequest(QIFFrameAsset requestOwner, TileFetchRequest fetchRequest) {
+        return requestOwner != null && requestOwner.request != fetchRequest;
+    }
+
+    private void fetchSuccess(TileFetchRequest fetchRequest, QIFFrameAsset requestOwner,
                               TileID tileID, int frame, long frameID, byte[] data) {
         final LoaderInterpreter theLoadInterp = loadInterp;
         final QuadSamplingLayer layer = getSamplingLayer();
@@ -406,7 +416,7 @@ public class QuadLoaderBase implements QuadSamplingLayer.ClientInterface
             return;
         }
 
-        if (!isFrameLoading(tileID,frameID)) {
+        if (isStaleRequest(requestOwner, fetchRequest) || !isFrameLoading(tileID,frameID)) {
             if (getDebugMode()) {
                 Log.d("Maply", "Dropping fetched frame for " + tileID);
             }
@@ -457,7 +467,11 @@ public class QuadLoaderBase implements QuadSamplingLayer.ClientInterface
                 if (control != null) {
                     try (LayerThread.WorkWrapper wr = layer.layerThread.startOfWorkWrapper()) {
                         if (wr != null) {
-                            if (loadInterp != null && !isShuttingDown) {
+                            // offto: checked again here, the thread that runs reload, so no race
+                            if (isStaleRequest(requestOwner, fetchRequest)) {
+                                clearLoadReturn(loadReturn);
+                                cleanupLoadedData(control, loadReturn);
+                            } else if (loadInterp != null && !isShuttingDown) {
                                 ChangeSet changes = new ChangeSet();
                                 mergeLoaderReturn(loadReturn, changes);
                                 layer.layerThread.addChanges(changes);
